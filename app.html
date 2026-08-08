@@ -203,13 +203,13 @@
   .mood-note .date{font-size:11px;color:var(--text-sub);margin-top:2px;}
 
   /* diary */
-  .diary-mood-row{display:flex;gap:10px;margin-bottom:14px;}
+  .diary-mood-row{display:flex;gap:6px;margin-bottom:14px;}
   .diary-mood-btn{
-    flex:1;aspect-ratio:1;border-radius:16px;border:2px solid var(--bg);background:var(--bg);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-    font-size:30px;cursor:pointer;
+    flex:1;aspect-ratio:1;border-radius:14px;border:2px solid var(--bg);background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    font-size:24px;cursor:pointer;min-width:0;
   }
-  .diary-mood-btn .lbl{font-size:11px;color:var(--text-sub);font-weight:600;}
+  .diary-mood-btn .lbl{font-size:9.5px;color:var(--text-sub);font-weight:600;white-space:nowrap;}
   .diary-mood-btn.selected{border-color:var(--rose);background:#fbe9ef;}
   .cal-day .diary-emoji{font-size:15px;line-height:1;}
 
@@ -315,11 +315,7 @@
         <div class="section-label" id="diaryDateLabel"></div>
         <div class="card">
           <div class="field-label" style="margin-top:0">วันนี้รู้สึกยังไง</div>
-          <div class="diary-mood-row" id="diaryMoodRow">
-            <div class="diary-mood-btn" data-mood="smile" onclick="selectDiaryMood('smile')">😄<span class="lbl">ยิ้ม</span></div>
-            <div class="diary-mood-btn" data-mood="neutral" onclick="selectDiaryMood('neutral')">😐<span class="lbl">เฉยๆ</span></div>
-            <div class="diary-mood-btn" data-mood="frown" onclick="selectDiaryMood('frown')">😞<span class="lbl">บึ้ง</span></div>
-          </div>
+          <div class="diary-mood-row" id="diaryMoodRow"></div>
           <div class="field-label">เขียนบันทึก (ถ้าอยากเล่า)</div>
           <textarea class="modal-input" id="diaryTextInput" placeholder="วันนี้เป็นยังไงบ้าง..." style="min-height:90px;"></textarea>
           <button class="btn-save" style="width:100%;margin-top:12px;border-radius:12px;padding:12px;" onclick="saveDiaryEntry()">บันทึกไดอารี่</button>
@@ -571,7 +567,15 @@
     {id:'other', label:'อื่นๆ', icon:'🗂️'}
   ];
   const GOAL_COLORS = ['g-rose','g-lavender','g-sky','g-mint','g-peach','g-sun','g-coral','g-teal'];
-  const MOOD_EMOJI = { smile:'😄', neutral:'😐', frown:'😞' };
+  const MOODS = [
+    { id:'happiest', emoji:'🌸', label:'ดีมาก' },
+    { id:'happy',    emoji:'😊', label:'สุข' },
+    { id:'neutral',  emoji:'😐', label:'เฉยๆ' },
+    { id:'sad',       emoji:'😔', label:'เศร้า' },
+    { id:'saddest',  emoji:'🌪', label:'แย่มาก' }
+  ];
+  const MOOD_EMOJI = Object.fromEntries(MOODS.map(m => [m.id, m.emoji]));
+  const OLD_MOOD_MAP = { smile:'happy', neutral:'neutral', frown:'sad' };
 
   function defaultData(){
     return {
@@ -589,6 +593,7 @@
       if(!raw) { const d = defaultData(); saveData(d); return d; }
       const d = JSON.parse(raw);
       if(!d.goals) d.goals=[]; if(!d.checkins) d.checkins=[]; if(!d.expenses) d.expenses=[]; if(!d.diary) d.diary=[];
+      d.diary.forEach(e=>{ if(OLD_MOOD_MAP[e.mood]) e.mood = OLD_MOOD_MAP[e.mood]; });
       if(!d.budgets) d.budgets = CATEGORIES.map(c => ({category:c.id, monthlyLimit:0}));
       if(!d.settings) d.settings = { morningPopupTime:'07:30', notificationsEnabled:false };
       if(!d.settings.morningPopupTime){
@@ -1193,6 +1198,19 @@
     document.querySelectorAll('.diary-mood-btn').forEach(b=> b.classList.toggle('selected', b.dataset.mood===mood));
   }
 
+  function renderDiaryMoodButtons(){
+    const wrap = document.getElementById('diaryMoodRow');
+    wrap.innerHTML = '';
+    MOODS.forEach(m=>{
+      const el = document.createElement('div');
+      el.className = 'diary-mood-btn' + (diarySelectedMood===m.id ? ' selected' : '');
+      el.dataset.mood = m.id;
+      el.onclick = ()=> selectDiaryMood(m.id);
+      el.innerHTML = `${m.emoji}<span class="lbl">${m.label}</span>`;
+      wrap.appendChild(el);
+    });
+  }
+
   function saveDiaryEntry(){
     if(!diarySelectedMood){ toast('เลือกอารมณ์ก่อนนะ'); return; }
     const t = todayStr();
@@ -1216,7 +1234,7 @@
     const t = todayStr();
     const existing = veraData.diary.find(d=>d.date===t);
     diarySelectedMood = existing ? existing.mood : null;
-    document.querySelectorAll('.diary-mood-btn').forEach(b=> b.classList.toggle('selected', !!(existing && b.dataset.mood===existing.mood)));
+    renderDiaryMoodButtons();
     document.getElementById('diaryTextInput').value = (existing && existing.text) ? existing.text : '';
 
     renderDiaryCalendar();
