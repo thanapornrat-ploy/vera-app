@@ -202,6 +202,17 @@
   .mood-note .txt{font-size:13px;}
   .mood-note .date{font-size:11px;color:var(--text-sub);margin-top:2px;}
 
+  /* diary */
+  .diary-mood-row{display:flex;gap:10px;margin-bottom:14px;}
+  .diary-mood-btn{
+    flex:1;aspect-ratio:1;border-radius:16px;border:2px solid var(--bg);background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    font-size:30px;cursor:pointer;
+  }
+  .diary-mood-btn .lbl{font-size:11px;color:var(--text-sub);font-weight:600;}
+  .diary-mood-btn.selected{border-color:var(--rose);background:#fbe9ef;}
+  .cal-day .diary-emoji{font-size:15px;line-height:1;}
+
   /* check-in modal */
   .modal-overlay{position:fixed; inset:0; background:rgba(58,46,53,.4); display:none; align-items:center; justify-content:center; z-index:40; padding:20px;}
   .modal-overlay.open{display:flex;}
@@ -299,6 +310,32 @@
         <div class="section-label">รายจ่ายล่าสุด</div>
         <div id="expenseList"></div>
       </section>
+
+      <section class="screen" id="screen-diary">
+        <div class="section-label" id="diaryDateLabel"></div>
+        <div class="card">
+          <div class="field-label" style="margin-top:0">วันนี้รู้สึกยังไง</div>
+          <div class="diary-mood-row" id="diaryMoodRow">
+            <div class="diary-mood-btn" data-mood="smile" onclick="selectDiaryMood('smile')">😄<span class="lbl">ยิ้ม</span></div>
+            <div class="diary-mood-btn" data-mood="neutral" onclick="selectDiaryMood('neutral')">😐<span class="lbl">เฉยๆ</span></div>
+            <div class="diary-mood-btn" data-mood="frown" onclick="selectDiaryMood('frown')">😞<span class="lbl">บึ้ง</span></div>
+          </div>
+          <div class="field-label">เขียนบันทึก (ถ้าอยากเล่า)</div>
+          <textarea class="modal-input" id="diaryTextInput" placeholder="วันนี้เป็นยังไงบ้าง..." style="min-height:90px;"></textarea>
+          <button class="btn-save" style="width:100%;margin-top:12px;border-radius:12px;padding:12px;" onclick="saveDiaryEntry()">บันทึกไดอารี่</button>
+        </div>
+
+        <div class="section-label">สรุปเดือน</div>
+        <div class="card">
+          <div class="cal-nav">
+            <button onclick="shiftDiaryCalMonth(-1)">‹</button>
+            <b id="diaryCalMonthLabel"></b>
+            <button onclick="shiftDiaryCalMonth(1)">›</button>
+          </div>
+          <div class="cal-grid" id="diaryCalGrid"></div>
+        </div>
+        <div id="diaryDayDetail"></div>
+      </section>
     </main>
 
     <nav class="bottom-nav">
@@ -307,6 +344,7 @@
       <button class="nav-btn" data-screen="monthly" onclick="showScreen('monthly')"><span class="icon">📅</span>สรุปเดือน</button>
       <button class="nav-btn" data-screen="mood" onclick="showScreen('mood')"><span class="icon">💗</span>อารมณ์</button>
       <button class="nav-btn" data-screen="money" onclick="showScreen('money')"><span class="icon">💸</span>การเงิน</button>
+      <button class="nav-btn" data-screen="diary" onclick="showScreen('diary')"><span class="icon">📔</span>ไดอารี่</button>
     </nav>
 
     <!-- settings sheet -->
@@ -533,12 +571,14 @@
     {id:'other', label:'อื่นๆ', icon:'🗂️'}
   ];
   const GOAL_COLORS = ['g-rose','g-lavender','g-sky','g-mint','g-peach','g-sun','g-coral','g-teal'];
+  const MOOD_EMOJI = { smile:'😄', neutral:'😐', frown:'😞' };
 
   function defaultData(){
     return {
       goals: [],
       checkins: [],
       expenses: [],
+      diary: [],
       budgets: CATEGORIES.map(c => ({category:c.id, monthlyLimit:0})),
       settings: { morningPopupTime:'07:30', notificationsEnabled:false }
     };
@@ -548,7 +588,7 @@
       const raw = localStorage.getItem(DATA_KEY);
       if(!raw) { const d = defaultData(); saveData(d); return d; }
       const d = JSON.parse(raw);
-      if(!d.goals) d.goals=[]; if(!d.checkins) d.checkins=[]; if(!d.expenses) d.expenses=[];
+      if(!d.goals) d.goals=[]; if(!d.checkins) d.checkins=[]; if(!d.expenses) d.expenses=[]; if(!d.diary) d.diary=[];
       if(!d.budgets) d.budgets = CATEGORIES.map(c => ({category:c.id, monthlyLimit:0}));
       if(!d.settings) d.settings = { morningPopupTime:'07:30', notificationsEnabled:false };
       if(!d.settings.morningPopupTime){
@@ -683,7 +723,7 @@
   function escapeHtml(s){ const d=document.createElement('div'); d.textContent = s==null?'':s; return d.innerHTML; }
 
   /* ================= navigation ================= */
-  const titles = {today:'วันนี้', goals:'เป้าหมาย', monthly:'สรุปเดือน', mood:'อารมณ์', money:'การเงิน'};
+  const titles = {today:'วันนี้', goals:'เป้าหมาย', monthly:'สรุปเดือน', mood:'อารมณ์', money:'การเงิน', diary:'ไดอารี่'};
 
   function showScreen(name){
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1144,6 +1184,116 @@
     renderMoodNotesList(doneCheckins);
   }
 
+  /* ================= Diary: render ================= */
+  let diarySelectedMood = null;
+  let diaryCalViewYear=null, diaryCalViewMonth=null, diarySelectedDate=null;
+
+  function selectDiaryMood(mood){
+    diarySelectedMood = mood;
+    document.querySelectorAll('.diary-mood-btn').forEach(b=> b.classList.toggle('selected', b.dataset.mood===mood));
+  }
+
+  function saveDiaryEntry(){
+    if(!diarySelectedMood){ toast('เลือกอารมณ์ก่อนนะ'); return; }
+    const t = todayStr();
+    const text = document.getElementById('diaryTextInput').value.trim();
+    let entry = veraData.diary.find(d=>d.date===t);
+    if(!entry){ entry = {id:uid('diary'), date:t, createdAt:Date.now()}; veraData.diary.push(entry); }
+    entry.mood = diarySelectedMood;
+    entry.text = text;
+    saveData(veraData);
+    toast('บันทึกไดอารี่แล้ว 💗');
+    renderDiaryCalendar();
+    renderDiaryDayDetail();
+  }
+
+  function renderDiaryScreen(){
+    const now = new Date();
+    const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    document.getElementById('diaryDateLabel').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}`;
+
+    const t = todayStr();
+    const existing = veraData.diary.find(d=>d.date===t);
+    diarySelectedMood = existing ? existing.mood : null;
+    document.querySelectorAll('.diary-mood-btn').forEach(b=> b.classList.toggle('selected', !!(existing && b.dataset.mood===existing.mood)));
+    document.getElementById('diaryTextInput').value = (existing && existing.text) ? existing.text : '';
+
+    renderDiaryCalendar();
+    renderDiaryDayDetail();
+  }
+
+  function renderDiaryCalendar(){
+    const now = new Date();
+    if(diaryCalViewYear==null){ diaryCalViewYear=now.getFullYear(); diaryCalViewMonth=now.getMonth(); }
+    const grid = document.getElementById('diaryCalGrid');
+    grid.innerHTML='';
+    const year=diaryCalViewYear, month=diaryCalViewMonth;
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    document.getElementById('diaryCalMonthLabel').textContent = `${monthNames[month]} ${year+543}`;
+    ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach(d=>{
+      const el=document.createElement('div'); el.className='dow'; el.textContent=d; grid.appendChild(el);
+    });
+    const firstDow = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const isCurrentMonth = year===now.getFullYear() && month===now.getMonth();
+    const todayDate = now.getDate();
+    for(let i=0;i<firstDow;i++){ const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el); }
+    for(let day=1; day<=daysInMonth; day++){
+      const dateStr = `${year}-${pad(month+1)}-${pad(day)}`;
+      const entry = veraData.diary.find(d=>d.date===dateStr);
+      const el=document.createElement('div');
+      let cls='cal-day';
+      if(isCurrentMonth && day===todayDate) cls+=' today';
+      if(entry) cls+=' has-data';
+      if(diarySelectedDate===dateStr) cls+=' selected';
+      el.className=cls;
+      if(entry){
+        el.innerHTML = `<span class="diary-emoji">${MOOD_EMOJI[entry.mood]}</span>`;
+        el.onclick = ()=> selectDiaryCalDay(dateStr);
+      } else {
+        el.textContent = day;
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  function shiftDiaryCalMonth(delta){
+    diaryCalViewMonth += delta;
+    if(diaryCalViewMonth<0){ diaryCalViewMonth=11; diaryCalViewYear--; }
+    if(diaryCalViewMonth>11){ diaryCalViewMonth=0; diaryCalViewYear++; }
+    diarySelectedDate=null;
+    renderDiaryCalendar();
+    renderDiaryDayDetail();
+  }
+
+  function selectDiaryCalDay(dateStr){
+    diarySelectedDate = (diarySelectedDate===dateStr) ? null : dateStr;
+    renderDiaryCalendar();
+    renderDiaryDayDetail();
+  }
+
+  function renderDiaryDayDetail(){
+    const el = document.getElementById('diaryDayDetail');
+    if(!diarySelectedDate){ el.innerHTML=''; return; }
+    const entry = veraData.diary.find(d=>d.date===diarySelectedDate);
+    const d = new Date(diarySelectedDate+'T00:00:00');
+    const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const label = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+    if(!entry){
+      el.innerHTML = `<div class="section-label">${label}</div><div class="card" style="text-align:center;color:var(--text-sub);font-size:13px;padding:20px;">ไม่มีบันทึกวันนี้</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="section-label">${label}</div>
+      <div class="card">
+        <div style="font-size:32px;">${MOOD_EMOJI[entry.mood]}</div>
+        ${entry.text ? `<div style="font-size:13px;margin-top:8px;">${escapeHtml(entry.text)}</div>` : ''}
+      </div>
+    `;
+  }
+
   /* ================= Money: render ================= */
   function fmtMoney(n){ return Number(n||0).toLocaleString('th-TH', {maximumFractionDigits:0}); }
   function fmtDateShort(dateStr){
@@ -1465,6 +1615,7 @@
     renderTodayScreen();
     renderMoneyScreen();
     renderMoodScreen();
+    renderDiaryScreen();
     const now = new Date();
     const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
     const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
