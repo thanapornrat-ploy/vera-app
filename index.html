@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vera — เพื่อนคู่ใจ Better Self</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Bai+Jamjuree:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fdf7f5;
+    --card:#ffffff;
+    --text:#3a2e35;
+    --text-sub:#8a7680;
+    --rose:#d46a8f;
+    --lavender:#a78bda;
+    --success:#4caf82;
+    --warn:#e0a63f;
+    --danger:#e2596b;
+    --shadow: 0 6px 20px rgba(58,46,53,.08);
+
+    --g-rose:#f2a6c1;
+    --g-lavender:#c9b6ea;
+    --g-sky:#a8d8ea;
+    --g-mint:#a8e6b0;
+    --g-peach:#ffcba4;
+    --g-sun:#ffe08a;
+    --g-coral:#ffb3ab;
+    --g-teal:#9fd8d0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Anuphan',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:32px 16px 80px;
+  }
+  h1,h2,h3,.num,.brand{font-family:'Bai Jamjuree',sans-serif;}
+
+  .intro{max-width:520px;margin:0 auto 28px;text-align:center;}
+  .intro .brand{font-size:34px;font-weight:700;color:var(--rose);letter-spacing:.5px;}
+  .intro p{color:var(--text-sub);font-size:15px;line-height:1.6;margin-top:8px;}
+  .intro .parts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .pill-tag{background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:var(--shadow);color:var(--text-sub);}
+  .pill-tag b{color:var(--text);}
+
+  /* phone frame */
+  .phone-wrap{display:flex;justify-content:center;margin-bottom:24px;}
+  .phone{
+    width:390px; max-width:100%; height:780px;
+    background:var(--card); border-radius:36px; box-shadow:var(--shadow), 0 0 0 8px #2b2228;
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .topbar{
+    padding:18px 18px 10px; display:flex; align-items:center; justify-content:space-between;
+    flex-shrink:0;
+  }
+  .topbar h2{margin:0;font-size:19px;}
+  .gear-btn{
+    width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;
+    display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+  }
+  .screen{flex:1;overflow-y:auto;padding:4px 16px 16px;display:none;}
+  .screen.active{display:block;}
+
+  .card{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .goal-card{display:flex;align-items:center;gap:12px;border-left:6px solid var(--g-rose);}
+  .goal-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .goal-title{font-weight:600;font-size:15px;}
+  .goal-sub{font-size:12.5px;color:var(--text-sub);margin-top:2px;}
+  .streak{font-size:12px;background:var(--bg);color:var(--rose);border-radius:999px;padding:3px 10px;font-weight:600;white-space:nowrap;}
+  .check-btn{
+    margin-left:auto;border:none;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;
+    cursor:pointer;flex-shrink:0;
+  }
+  .check-btn.todo{background:var(--rose);color:#fff;}
+  .check-btn.done{background:var(--success);color:#fff;}
+
+  .section-label{font-size:12.5px;color:var(--text-sub);margin:14px 0 8px;font-weight:600;letter-spacing:.3px;}
+
+  /* bottom nav */
+  .bottom-nav{
+    display:flex; justify-content:space-around; align-items:center;
+    padding:10px 4px; border-top:1px solid #f1e9ea; background:var(--card); flex-shrink:0;
+  }
+  .nav-btn{
+    background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--text-sub);font-size:10.5px;cursor:pointer;padding:4px 8px;border-radius:12px;
+    font-family:'Anuphan',sans-serif;
+  }
+  .nav-btn .icon{font-size:19px;}
+  .nav-btn.active{color:var(--rose);font-weight:600;}
+
+  /* Goals screen */
+  .add-goal-btn{
+    width:100%;border:2px dashed #e9d8de;background:transparent;border-radius:16px;padding:14px;
+    color:var(--rose);font-weight:600;font-size:14px;cursor:pointer;margin-bottom:12px;
+  }
+  .goal-list-card{padding:14px 16px;}
+  .goal-list-card .goal-title{margin-bottom:4px;}
+  .progress-mini{height:6px;border-radius:99px;background:var(--bg);margin-top:8px;overflow:hidden;}
+  .progress-mini > div{height:100%;border-radius:99px;}
+
+  /* Calendar */
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-nav button{background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+  .cal-grid .dow{font-size:11px;color:var(--text-sub);padding-bottom:4px;font-weight:600;}
+  .cal-day{
+    aspect-ratio:1;border-radius:10px;background:var(--bg);position:relative;
+    font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  .cal-day.empty{background:transparent;}
+  .cal-day.today{outline:2px solid var(--rose);outline-offset:-2px;font-weight:700;}
+  .cal-dots{display:flex;gap:2px;}
+  .cal-dot{width:5px;height:5px;border-radius:50%;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-sub);}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+
+  /* Mood */
+  .mood-avg{display:flex;gap:10px;margin-bottom:14px;}
+  .mood-avg .card{flex:1;text-align:center;padding:14px 8px;}
+  .mood-avg .num{font-size:24px;font-weight:700;color:var(--lavender);}
+  .mood-avg .lbl{font-size:11px;color:var(--text-sub);}
+  .chart-bars{display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:8px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .bar-track{width:100%;display:flex;flex-direction:column-reverse;height:80px;gap:2px;}
+  .bar{width:100%;border-radius:4px 4px 0 0;}
+  .bar-col .dlabel{font-size:9.5px;color:var(--text-sub);}
+  .mood-note{display:flex;gap:10px;margin-bottom:10px;}
+  .mood-note .thumb{width:42px;height:42px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .mood-note .txt{font-size:13px;}
+  .mood-note .date{font-size:11px;color:var(--text-sub);}
+
+  /* Money */
+  .budget-row{margin-bottom:14px;}
+  .budget-row .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+  .budget-row .top .cat{font-weight:600;}
+  .budget-row .top .amt{color:var(--text-sub);}
+  .budget-bar{height:9px;border-radius:99px;background:var(--bg);overflow:hidden;}
+  .budget-bar > div{height:100%;border-radius:99px;}
+  .expense-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f5eeef;font-size:13.5px;}
+  .expense-row:last-child{border-bottom:none;}
+  .expense-row .cat-tag{font-size:11px;color:var(--text-sub);}
+  .fab{
+    position:absolute; right:16px; bottom:76px; width:52px;height:52px;border-radius:50%;
+    background:var(--rose); color:#fff; border:none; font-size:24px; box-shadow:var(--shadow); cursor:pointer;
+  }
+
+  /* Settings sheet */
+  .sheet-overlay{
+    position:absolute; inset:0; background:rgba(58,46,53,.35); display:none; align-items:flex-end; z-index:20;
+  }
+  .sheet-overlay.open{display:flex;}
+  .sheet{
+    background:var(--card); width:100%; border-radius:24px 24px 0 0; padding:20px 18px 26px;
+    max-height:85%; overflow-y:auto;
+  }
+  .sheet h3{margin:0 0 4px;}
+  .sheet .sub{font-size:12.5px;color:var(--text-sub);margin-bottom:16px;}
+  .settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5eeef;}
+  .settings-row:last-of-type{border-bottom:none;}
+  .settings-row .label{font-size:14px;font-weight:500;}
+  .settings-row .desc{font-size:11.5px;color:var(--text-sub);margin-top:2px;}
+  .btn-secondary{background:var(--bg);border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;}
+  .switch{width:40px;height:22px;border-radius:99px;background:#e9d8de;position:relative;cursor:pointer;flex-shrink:0;}
+  .switch.on{background:var(--success);}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;}
+  .switch.on::after{left:20px;}
+  .close-sheet{width:100%;text-align:center;background:none;border:none;color:var(--text-sub);font-size:13px;padding:10px 0 0;cursor:pointer;}
+  .note-box{background:var(--bg);border-radius:12px;padding:12px;font-size:12px;color:var(--text-sub);line-height:1.6;margin-top:6px;}
+
+  /* Check-in modal */
+  .modal-overlay{
+    position:absolute; inset:0; background:rgba(58,46,53,.4); display:none; align-items:center; justify-content:center; z-index:30; padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--card);border-radius:22px;padding:22px 20px;width:100%;max-height:90%;overflow-y:auto;}
+  .modal h3{margin:0 0 2px;}
+  .modal .sub{font-size:12.5px;color:var(--text-sub);margin-bottom:14px;}
+  .level-row{display:flex;gap:8px;margin-bottom:14px;}
+  .level-btn{
+    flex:1;aspect-ratio:1;border-radius:14px;border:2px solid var(--bg);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;
+  }
+  .level-btn.selected{border-color:var(--rose);background:#fbe9ef;}
+  .field-label{font-size:12.5px;font-weight:600;margin:12px 0 6px;}
+  textarea.modal-input{width:100%;border:1.5px solid #f1e2e6;border-radius:12px;padding:10px;font-family:inherit;font-size:13px;resize:none;min-height:56px;}
+  .photo-btn{width:100%;border:2px dashed #e9d8de;border-radius:12px;padding:12px;text-align:center;color:var(--text-sub);font-size:13px;background:transparent;cursor:pointer;margin-top:6px;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-actions button{flex:1;border:none;border-radius:999px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-cancel{background:var(--bg);color:var(--text-sub);}
+  .btn-save{background:var(--rose);color:#fff;}
+
+  footer{text-align:center;font-size:12px;color:var(--text-sub);margin-top:10px;}
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="brand">Vera</div>
+    <p>เพื่อนคู่ใจติดตามการเติบโตของตัวเอง — ตั้งเป้าหมาย เช็คอินทุกวัน บันทึกอารมณ์ และคุมค่าใช้จ่าย ในที่เดียว</p>
+    <div class="parts">
+      <div class="pill-tag">🌱 <b>Part 1</b> Better Self</div>
+      <div class="pill-tag">💸 <b>Part 2</b> การเงิน</div>
+    </div>
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone">
+
+      <div class="topbar">
+        <h2 id="screenTitle">วันนี้</h2>
+        <button class="gear-btn" onclick="toggleSheet(true)">⚙️</button>
+      </div>
+
+      <!-- วันนี้ -->
+      <div class="screen active" id="screen-today">
+        <div class="section-label">เสาร์ 8 สิงหาคม 2569</div>
+
+        <div class="card goal-card" style="border-left-color:var(--g-rose)">
+          <div>
+            <div class="goal-title">Weight Training</div>
+            <div class="goal-sub">45 นาที · 5 วัน/สัปดาห์ · 🔥 streak 12 วัน</div>
+          </div>
+          <button class="check-btn todo" onclick="openCheckin('Weight Training','var(--g-rose)')">เช็คอิน</button>
+        </div>
+
+        <div class="card goal-card" style="border-left-color:var(--g-mint)">
+          <div>
+            <div class="goal-title">ดื่มน้ำให้ครบ 2 ลิตร</div>
+            <div class="goal-sub">ทุกวัน · 🔥 streak 20 วัน</div>
+          </div>
+          <button class="check-btn done" disabled>ทำแล้ว ✓</button>
+        </div>
+
+        <div class="card goal-card" style="border-left-color:var(--g-lavender)">
+          <div>
+            <div class="goal-title">อ่านหนังสือก่อนนอน</div>
+            <div class="goal-sub">20 นาที · ทุกวัน · 🔥 streak 5 วัน</div>
+          </div>
+          <button class="check-btn todo" onclick="openCheckin('อ่านหนังสือก่อนนอน','var(--g-lavender)')">เช็คอิน</button>
+        </div>
+
+        <div class="card goal-card" style="border-left-color:var(--g-sky)">
+          <div>
+            <div class="goal-title">เรียนภาษาญี่ปุ่น</div>
+            <div class="goal-sub">30 นาที · 3 วัน/สัปดาห์ · 🔥 streak 2 วัน</div>
+          </div>
+          <button class="check-btn todo" onclick="openCheckin('เรียนภาษาญี่ปุ่น','var(--g-sky)')">เช็คอิน</button>
+        </div>
+      </div>
+
+      <!-- เป้าหมาย -->
+      <div class="screen" id="screen-goals">
+        <button class="add-goal-btn">＋ เป้าหมายใหม่</button>
+
+        <div class="card goal-list-card">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="goal-dot" style="background:var(--g-rose)"></span>
+            <span class="goal-title">Weight Training</span>
+            <span class="streak" style="margin-left:auto">🔥 12 วัน</span>
+          </div>
+          <div class="goal-sub">5 วัน/สัปดาห์ · 45 นาที/วัน · เริ่ม 1 ก.ค. 2569</div>
+          <div class="progress-mini"><div style="width:80%;background:var(--g-rose)"></div></div>
+        </div>
+
+        <div class="card goal-list-card">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="goal-dot" style="background:var(--g-mint)"></span>
+            <span class="goal-title">ดื่มน้ำให้ครบ 2 ลิตร</span>
+            <span class="streak" style="margin-left:auto">🔥 20 วัน</span>
+          </div>
+          <div class="goal-sub">ทุกวัน · ไม่จำกัดเวลา</div>
+          <div class="progress-mini"><div style="width:95%;background:var(--g-mint)"></div></div>
+        </div>
+
+        <div class="card goal-list-card">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="goal-dot" style="background:var(--g-lavender)"></span>
+            <span class="goal-title">อ่านหนังสือก่อนนอน</span>
+            <span class="streak" style="margin-left:auto">🔥 5 วัน</span>
+          </div>
+          <div class="goal-sub">ทุกวัน · 20 นาที/วัน</div>
+          <div class="progress-mini"><div style="width:60%;background:var(--g-lavender)"></div></div>
+        </div>
+
+        <div class="card goal-list-card">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="goal-dot" style="background:var(--g-sky)"></span>
+            <span class="goal-title">เรียนภาษาญี่ปุ่น</span>
+            <span class="streak" style="margin-left:auto">🔥 2 วัน</span>
+          </div>
+          <div class="goal-sub">3 วัน/สัปดาห์ · 30 นาที/วัน · เริ่ม 1 ส.ค. 2569</div>
+          <div class="progress-mini"><div style="width:25%;background:var(--g-sky)"></div></div>
+        </div>
+      </div>
+
+      <!-- สรุปเดือน -->
+      <div class="screen" id="screen-monthly">
+        <div class="cal-nav">
+          <button>‹</button>
+          <b>สิงหาคม 2569</b>
+          <button>›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--g-rose)"></span>Weight Training</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--g-mint)"></span>ดื่มน้ำ</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--g-lavender)"></span>อ่านหนังสือ</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--g-sky)"></span>ภาษาญี่ปุ่น</div>
+        </div>
+      </div>
+
+      <!-- อารมณ์ -->
+      <div class="screen" id="screen-mood">
+        <div class="mood-avg">
+          <div class="card">
+            <div class="num">1.2</div>
+            <div class="lbl">เศร้า/เครียด เฉลี่ย<br>สัปดาห์นี้</div>
+          </div>
+          <div class="card">
+            <div class="num">2.4</div>
+            <div class="lbl">energy/happy เฉลี่ย<br>สัปดาห์นี้</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label" style="margin-top:0">Energy / Happy — 7 วันล่าสุด</div>
+          <div class="chart-bars" id="moodChart"></div>
+        </div>
+
+        <div class="section-label">บันทึกล่าสุด</div>
+        <div class="card mood-note">
+          <div class="thumb">📷</div>
+          <div>
+            <div class="txt">วันนี้ยกเวทหนักหน่อยแต่รู้สึกดีมาก พลังเยอะ!</div>
+            <div class="date">8 ส.ค. · Weight Training</div>
+          </div>
+        </div>
+        <div class="card mood-note">
+          <div class="thumb">💭</div>
+          <div>
+            <div class="txt">เหนื่อยจากงานนิดหน่อย แต่อ่านหนังสือแล้วผ่อนคลายขึ้น</div>
+            <div class="date">7 ส.ค. · อ่านหนังสือก่อนนอน</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- การเงิน -->
+      <div class="screen" id="screen-money" style="position:relative;">
+        <div class="budget-row">
+          <div class="top"><span class="cat">Skincare</span><span class="amt">1,300 / 1,500 ฿</span></div>
+          <div class="budget-bar"><div style="width:87%;background:var(--warn)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">เสื้อผ้า/เครื่องประดับ</span><span class="amt">2,200 / 2,000 ฿</span></div>
+          <div class="budget-bar"><div style="width:100%;background:var(--danger)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">อาหาร/กาแฟ</span><span class="amt">1,800 / 2,500 ฿</span></div>
+          <div class="budget-bar"><div style="width:72%;background:var(--success)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">ของใช้ประจำวัน</span><span class="amt">400 / 1,000 ฿</span></div>
+          <div class="budget-bar"><div style="width:40%;background:var(--success)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">ยา-วิตามิน</span><span class="amt">300 / 500 ฿</span></div>
+          <div class="budget-bar"><div style="width:60%;background:var(--success)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">ค่าเรียนอบรม</span><span class="amt">0 / 1,500 ฿</span></div>
+          <div class="budget-bar"><div style="width:0%;background:var(--success)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">Entertainment</span><span class="amt">600 / 1,000 ฿</span></div>
+          <div class="budget-bar"><div style="width:60%;background:var(--success)"></div></div>
+        </div>
+        <div class="budget-row">
+          <div class="top"><span class="cat">อื่นๆ</span><span class="amt">150 / 500 ฿</span></div>
+          <div class="budget-bar"><div style="width:30%;background:var(--success)"></div></div>
+        </div>
+
+        <div class="section-label">รายจ่ายล่าสุด</div>
+        <div class="card">
+          <div class="expense-row"><div>เซรั่มวิตซี<div class="cat-tag">Skincare · 7 ส.ค.</div></div><div>590 ฿</div></div>
+          <div class="expense-row"><div>เสื้อยืด H&M<div class="cat-tag">เสื้อผ้า · 6 ส.ค.</div></div><div>790 ฿</div></div>
+          <div class="expense-row"><div>ลาเต้ร้อน<div class="cat-tag">อาหาร/กาแฟ · 6 ส.ค.</div></div><div>65 ฿</div></div>
+          <div class="expense-row"><div>วิตามินซี</div><div class="cat-tag" style="margin:0">300 ฿</div></div>
+        </div>
+
+        <button class="fab" onclick="alert('ในแอพจริงจะเปิดฟอร์มเพิ่มรายจ่าย (จำนวนเงิน / หมวด / วันที่ / โน้ต)')">＋</button>
+      </div>
+
+      <!-- bottom nav -->
+      <div class="bottom-nav">
+        <button class="nav-btn active" data-screen="today" onclick="showScreen('today')"><span class="icon">🌤️</span>วันนี้</button>
+        <button class="nav-btn" data-screen="goals" onclick="showScreen('goals')"><span class="icon">🎯</span>เป้าหมาย</button>
+        <button class="nav-btn" data-screen="monthly" onclick="showScreen('monthly')"><span class="icon">📅</span>สรุปเดือน</button>
+        <button class="nav-btn" data-screen="mood" onclick="showScreen('mood')"><span class="icon">💗</span>อารมณ์</button>
+        <button class="nav-btn" data-screen="money" onclick="showScreen('money')"><span class="icon">💸</span>การเงิน</button>
+      </div>
+
+      <!-- settings sheet -->
+      <div class="sheet-overlay" id="sheetOverlay" onclick="if(event.target===this)toggleSheet(false)">
+        <div class="sheet">
+          <h3>ตั้งค่า</h3>
+          <div class="sub">ข้อมูลทั้งหมดเก็บในเครื่องนี้เครื่องเดียว</div>
+
+          <div class="settings-row">
+            <div>
+              <div class="label">Export ข้อมูล</div>
+              <div class="desc">ดาวน์โหลดเป็นไฟล์ .json เก็บไว้กันหาย</div>
+            </div>
+            <button class="btn-secondary">ดาวน์โหลด</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="label">Import ข้อมูล</div>
+              <div class="desc">นำไฟล์ .json ที่เคย export กลับเข้าแอพ</div>
+            </div>
+            <button class="btn-secondary">เลือกไฟล์</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="label">แจ้งเตือนเช็คอินตอนเช้า</div>
+              <div class="desc">เวลาที่ตั้งไว้: 07:30 น.</div>
+            </div>
+            <div class="switch on"></div>
+          </div>
+
+          <div class="note-box">
+            📌 ถ้าอยากให้มีแจ้งเตือนจริง ๆ ตอนไม่ได้เปิดแอพ ต้องกด "เพิ่มไปหน้าจอโฮม" ก่อน (บน iPhone ต้องทำขั้นนี้ก่อนถึงจะเตือนได้) ถ้าไม่เพิ่ม แอพจะเด้งป็อปอัพให้เช็คอินแค่ตอนที่เปิดแอพเองเท่านั้น
+          </div>
+
+          <button class="close-sheet" onclick="toggleSheet(false)">ปิด</button>
+        </div>
+      </div>
+
+      <!-- check-in modal -->
+      <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeCheckin()">
+        <div class="modal">
+          <h3 id="modalGoalName">เช็คอิน</h3>
+          <div class="sub">วันนี้ทำสำเร็จแล้วใช่ไหม? บันทึกความรู้สึกไปด้วยกันนะ</div>
+
+          <div class="field-label">😔 เศร้า/เครียด/เหนื่อยไหม</div>
+          <div class="level-row" data-group="stress">
+            <div class="level-btn" onclick="selectLevel(this)">0</div>
+            <div class="level-btn" onclick="selectLevel(this)">1</div>
+            <div class="level-btn selected" onclick="selectLevel(this)">2</div>
+            <div class="level-btn" onclick="selectLevel(this)">3</div>
+          </div>
+
+          <div class="field-label">⚡ energy / happy / positive</div>
+          <div class="level-row" data-group="energy">
+            <div class="level-btn" onclick="selectLevel(this)">0</div>
+            <div class="level-btn" onclick="selectLevel(this)">1</div>
+            <div class="level-btn" onclick="selectLevel(this)">2</div>
+            <div class="level-btn selected" onclick="selectLevel(this)">3</div>
+          </div>
+
+          <div class="field-label">โน้ตถึงตัวเอง</div>
+          <textarea class="modal-input" placeholder="วันนี้เป็นยังไงบ้าง...">วันนี้ยกเวทหนักหน่อยแต่รู้สึกดีมาก</textarea>
+
+          <button class="photo-btn">📷 แนบรูป (ถ่ายสด หรือเลือกจากคลัง — ไม่บังคับ)</button>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeCheckin()">ยกเลิก</button>
+            <button class="btn-save" onclick="closeCheckin()">บันทึกเช็คอิน</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Vera · showcase preview — ข้อมูลทั้งหมดในหน้านี้เป็นตัวอย่าง</footer>
+
+<script>
+  const titles = {today:'วันนี้', goals:'เป้าหมาย', monthly:'สรุปเดือน', mood:'อารมณ์', money:'การเงิน'};
+
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+name).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+    document.getElementById('screenTitle').textContent = titles[name];
+  }
+
+  function toggleSheet(open){
+    document.getElementById('sheetOverlay').classList.toggle('open', open);
+  }
+
+  function openCheckin(goalName, color){
+    document.getElementById('modalGoalName').textContent = 'เช็คอิน · ' + goalName;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeCheckin(){
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function selectLevel(el){
+    el.parentElement.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // build calendar for August 2026 (Aug 1 = Saturday)
+  (function buildCalendar(){
+    const grid = document.getElementById('calGrid');
+    const dows = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+    dows.forEach(d=>{
+      const el = document.createElement('div');
+      el.className='dow'; el.textContent=d;
+      grid.appendChild(el);
+    });
+
+    const colors = {rose:'var(--g-rose)', mint:'var(--g-mint)', lavender:'var(--g-lavender)', sky:'var(--g-sky)'};
+    const dayGoals = {
+      1:['rose'], 2:['mint'], 3:['mint','lavender'], 4:['rose','mint'], 5:['mint','sky'],
+      6:['mint','lavender'], 7:['rose','mint','lavender'], 8:['mint','sky'],
+      9:['rose','mint'], 10:['mint'], 11:['mint','lavender','sky'], 12:['rose','mint'],
+      13:['mint'], 14:['mint','lavender'], 15:['rose','mint','sky']
+    };
+
+    const leadingBlanks = 6; // Aug 1 falls on Saturday (7th column)
+    for(let i=0;i<leadingBlanks;i++){
+      const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el);
+    }
+    for(let day=1; day<=31; day++){
+      const el=document.createElement('div');
+      el.className='cal-day'+(day===8?' today':'');
+      const num=document.createElement('div'); num.textContent=day; el.appendChild(num);
+      if(dayGoals[day]){
+        const dots=document.createElement('div'); dots.className='cal-dots';
+        dayGoals[day].forEach(g=>{
+          const dot=document.createElement('span'); dot.className='cal-dot';
+          dot.style.background=colors[g]; dots.appendChild(dot);
+        });
+        el.appendChild(dots);
+      }
+      grid.appendChild(el);
+    }
+  })();
+
+  // mood chart, 7 days
+  (function buildMoodChart(){
+    const chart = document.getElementById('moodChart');
+    const days = ['2 ส.ค.','3 ส.ค.','4 ส.ค.','5 ส.ค.','6 ส.ค.','7 ส.ค.','8 ส.ค.'];
+    const energy = [2,1,3,2,3,2,3]; // 0-3
+    days.forEach((d,i)=>{
+      const col=document.createElement('div'); col.className='bar-col';
+      const track=document.createElement('div'); track.className='bar-track';
+      const bar=document.createElement('div'); bar.className='bar';
+      bar.style.height=(energy[i]/3*100)+'%';
+      bar.style.background='var(--lavender)';
+      track.appendChild(bar); col.appendChild(track);
+      const lbl=document.createElement('div'); lbl.className='dlabel'; lbl.textContent=d.split(' ')[0];
+      col.appendChild(lbl);
+      chart.appendChild(col);
+    });
+  })();
+</script>
+
+</body>
+</html>

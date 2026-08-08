@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vera</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#d46a8f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vera">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Bai+Jamjuree:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fdf7f5;
+    --card:#ffffff;
+    --text:#3a2e35;
+    --text-sub:#8a7680;
+    --rose:#d46a8f;
+    --lavender:#a78bda;
+    --success:#4caf82;
+    --warn:#e0a63f;
+    --danger:#e2596b;
+    --stress:#c98a9c;
+    --shadow: 0 6px 20px rgba(58,46,53,.08);
+    --g-rose:#f2a6c1; --g-lavender:#c9b6ea; --g-sky:#a8d8ea; --g-mint:#a8e6b0;
+    --g-peach:#ffcba4; --g-sun:#ffe08a; --g-coral:#ffb3ab; --g-teal:#9fd8d0;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Anuphan',sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.brand{font-family:'Bai Jamjuree',sans-serif;}
+
+  #app{
+    max-width:480px; margin:0 auto; min-height:100vh;
+    display:flex; flex-direction:column; background:var(--bg);
+    box-shadow:0 0 40px rgba(58,46,53,.06);
+  }
+
+  .topbar{
+    position:sticky; top:0; z-index:10; background:var(--bg);
+    padding:calc(16px + env(safe-area-inset-top)) 18px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid #f1e6e9;
+  }
+  .topbar h2{margin:0;font-size:19px;}
+  .gear-btn{
+    width:36px;height:36px;border-radius:50%;background:var(--card);border:none;
+    display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;box-shadow:var(--shadow);
+  }
+
+  main{flex:1; padding:14px 16px 100px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .card{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .empty-state{text-align:center; padding:48px 20px; color:var(--text-sub);}
+  .empty-state .icon{font-size:38px;margin-bottom:10px;}
+  .empty-state .title{font-weight:600;color:var(--text);font-size:15px;margin-bottom:4px;}
+  .empty-state .desc{font-size:13px;line-height:1.6;}
+  .link-btn{
+    margin-top:14px;border:none;background:var(--rose);color:#fff;border-radius:999px;
+    padding:10px 20px;font-size:13.5px;font-weight:600;cursor:pointer;
+  }
+
+  .add-goal-btn{
+    width:100%;border:2px dashed #e9d8de;background:transparent;border-radius:16px;padding:14px;
+    color:var(--rose);font-weight:600;font-size:14px;cursor:pointer;margin-bottom:12px;
+  }
+
+  .section-label{font-size:12.5px;color:var(--text-sub);margin:14px 0 8px;font-weight:600;}
+
+  /* goal cards */
+  .goal-card, .goal-list-card{display:flex;align-items:center;gap:12px;}
+  .goal-list-card{display:block; cursor:pointer;}
+  .goal-title{font-weight:600;font-size:15px;}
+  .goal-sub{font-size:12.5px;color:var(--text-sub);margin-top:2px;}
+  .streak-badge{font-size:11px;background:var(--bg);color:var(--rose);border-radius:999px;padding:3px 9px;font-weight:600;white-space:nowrap;}
+  .check-btn{
+    margin-left:auto;border:none;border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:600;
+    cursor:pointer;flex-shrink:0;white-space:nowrap;
+  }
+  .check-btn.todo{background:var(--rose);color:#fff;}
+  .check-btn.done{background:var(--success);color:#fff;}
+  .check-btn.skipped{background:var(--bg);color:var(--text-sub);}
+
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-nav button{background:var(--card);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;box-shadow:var(--shadow);}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+  .cal-grid .dow{font-size:11px;color:var(--text-sub);padding-bottom:4px;font-weight:600;}
+  .cal-day{aspect-ratio:1;border-radius:10px;background:var(--card);position:relative;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+  .cal-day.empty{background:transparent;}
+  .cal-day.has-data{cursor:pointer;}
+  .cal-day.today{outline:2px solid var(--rose);outline-offset:-2px;font-weight:700;}
+  .cal-day.selected{box-shadow:0 0 0 2px var(--lavender) inset;}
+  .cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:90%;}
+  .cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-sub);}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+  .bottom-nav{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px;
+    display:flex; justify-content:space-around; align-items:center;
+    padding:10px 4px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid #f1e9ea; background:var(--card); z-index:10;
+  }
+  .nav-btn{
+    background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--text-sub);font-size:10.5px;cursor:pointer;padding:4px 8px;border-radius:12px;
+    font-family:'Anuphan',sans-serif;
+  }
+  .nav-btn .icon{font-size:19px;}
+  .nav-btn.active{color:var(--rose);font-weight:600;}
+
+  /* bottom sheets (settings / goal form) */
+  .sheet-overlay{position:fixed; inset:0; background:rgba(58,46,53,.35); display:none; align-items:flex-end; z-index:30;}
+  .sheet-overlay.open{display:flex;}
+  .sheet{
+    background:var(--card); width:100%; max-width:480px; margin:0 auto; border-radius:24px 24px 0 0;
+    padding:20px 18px calc(26px + env(safe-area-inset-bottom)); max-height:88%; overflow-y:auto;
+  }
+  .sheet h3{margin:0 0 4px;}
+  .sheet .sub{font-size:12.5px;color:var(--text-sub);margin-bottom:16px;}
+  .settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5eeef;}
+  .settings-row:last-of-type{border-bottom:none;}
+  .settings-row .label{font-size:14px;font-weight:500;}
+  .settings-row .desc{font-size:11.5px;color:var(--text-sub);margin-top:2px;}
+  .btn-secondary{background:var(--bg);border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;}
+  .time-input{border:1.5px solid #f1e2e6;border-radius:10px;padding:7px 8px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);}
+  .install-steps{margin:0 0 6px;padding-left:20px;font-size:12.5px;line-height:1.7;color:var(--text);}
+  .install-steps li{margin-bottom:2px;}
+  .switch{width:40px;height:22px;border-radius:99px;background:#e9d8de;position:relative;cursor:pointer;flex-shrink:0;border:none;}
+  .switch.on{background:var(--success);}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;}
+  .switch.on::after{left:20px;}
+  .close-sheet{width:100%;text-align:center;background:none;border:none;color:var(--text-sub);font-size:13px;padding:14px 0 0;cursor:pointer;}
+  .note-box{background:var(--bg);border-radius:12px;padding:12px;font-size:12px;color:var(--text-sub);line-height:1.6;margin-top:6px;}
+
+  /* form fields (goal form + checkin modal share these) */
+  .field-label{font-size:12.5px;font-weight:600;margin:12px 0 6px;}
+  input.modal-input, textarea.modal-input{
+    width:100%;border:1.5px solid #f1e2e6;border-radius:12px;padding:10px;font-family:inherit;font-size:13px;
+  }
+  textarea.modal-input{min-height:56px;resize:none;}
+  .color-swatches{display:flex;gap:8px;flex-wrap:wrap;}
+  .color-swatch{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;}
+  .color-swatch.selected{border-color:var(--text);}
+  .freq-buttons{display:flex;gap:6px;flex-wrap:wrap;}
+  .freq-btn{flex:1;min-width:34px;padding:8px 0;text-align:center;border-radius:10px;background:var(--bg);font-size:12.5px;cursor:pointer;}
+  .freq-btn.selected{background:var(--rose);color:#fff;font-weight:600;}
+  .date-row{display:flex;gap:10px;}
+  .date-row > div{flex:1;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-actions button{flex:1;border:none;border-radius:999px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-cancel{background:var(--bg);color:var(--text-sub);}
+  .btn-save{background:var(--rose);color:#fff;}
+  .danger-actions{display:flex;gap:10px;margin-top:14px;}
+  .btn-danger-outline{flex:1;border:1.5px solid var(--danger);color:var(--danger);background:transparent;border-radius:999px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;}
+  .btn-neutral-outline{flex:1;border:1.5px solid #e9d8de;color:var(--text-sub);background:transparent;border-radius:999px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;}
+
+  /* money screen */
+  .budget-row{margin-bottom:14px;cursor:pointer;}
+  .budget-row .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:5px;gap:8px;}
+  .budget-row .top .cat{font-weight:600;white-space:nowrap;}
+  .budget-row .top .amt{color:var(--text-sub);font-size:12px;text-align:right;}
+  .budget-bar{height:9px;border-radius:99px;background:var(--bg);overflow:hidden;}
+  .budget-bar > div{height:100%;border-radius:99px;transition:width .3s;}
+  .expense-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f5eeef;font-size:13.5px;cursor:pointer;}
+  .expense-row:last-child{border-bottom:none;}
+  .expense-row .cat-tag{font-size:11px;color:var(--text-sub);margin-top:2px;}
+  .cat-chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .cat-chip{padding:8px 12px;border-radius:999px;background:var(--bg);font-size:12.5px;cursor:pointer;}
+  .cat-chip.selected{background:var(--rose);color:#fff;font-weight:600;}
+
+  /* mood screen */
+  .mood-range-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .range-btn{flex:1;padding:9px;border-radius:999px;background:var(--card);border:none;font-size:12.5px;color:var(--text-sub);cursor:pointer;box-shadow:var(--shadow);}
+  .range-btn.selected{background:var(--rose);color:#fff;font-weight:600;}
+  .mood-avg{display:flex;gap:10px;margin-bottom:14px;}
+  .mood-avg .card{flex:1;text-align:center;padding:14px 8px;}
+  .mood-avg .num{font-size:24px;font-weight:700;color:var(--lavender);font-family:'Bai Jamjuree',sans-serif;}
+  .mood-avg .lbl{font-size:11px;color:var(--text-sub);margin-top:2px;}
+  .trend{font-size:10.5px;margin-top:5px;font-weight:600;display:inline-block;}
+  .trend.up{color:var(--success);}
+  .trend.down{color:var(--danger);}
+  .trend.flat{color:var(--text-sub);}
+  .chart-bars{display:flex;align-items:flex-end;gap:5px;height:110px;padding-top:8px;overflow-x:auto;}
+  .bar-col{flex:1;min-width:10px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .bar-track{width:100%;display:flex;flex-direction:column-reverse;height:80px;}
+  .bar{width:100%;border-radius:4px 4px 0 0;min-height:2px;}
+  .bar-col .dlabel{font-size:9px;color:var(--text-sub);white-space:nowrap;}
+  .mood-note{display:flex;gap:10px;align-items:flex-start;}
+  .mood-note .thumb{width:42px;height:42px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden;}
+  .mood-note .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .mood-note .txt{font-size:13px;}
+  .mood-note .date{font-size:11px;color:var(--text-sub);margin-top:2px;}
+
+  /* check-in modal */
+  .modal-overlay{position:fixed; inset:0; background:rgba(58,46,53,.4); display:none; align-items:center; justify-content:center; z-index:40; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--card);border-radius:22px;padding:22px 20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
+  .modal h3{margin:0 0 2px;}
+  .modal .sub{font-size:12.5px;color:var(--text-sub);margin-bottom:14px;}
+  .yesno-row{display:flex;gap:10px;margin:16px 0 4px;}
+  .yesno-btn{flex:1;padding:16px 8px;border-radius:16px;border:2px solid var(--bg);background:var(--bg);font-size:13.5px;font-weight:600;cursor:pointer;color:var(--text);}
+  .yesno-btn.yes.selected{border-color:var(--success);background:#eaf7f0;color:var(--success);}
+  .yesno-btn.no.selected{border-color:var(--text-sub);background:#f2eeef;}
+  .level-row{display:flex;gap:8px;margin-bottom:14px;}
+  .level-btn{flex:1;aspect-ratio:1;border-radius:14px;border:2px solid var(--bg);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;}
+  .level-btn.selected{border-color:var(--rose);background:#fbe9ef;}
+  .photo-btn{width:100%;border:2px dashed #e9d8de;border-radius:12px;padding:12px;text-align:center;color:var(--text-sub);font-size:13px;background:transparent;cursor:pointer;margin-top:6px;}
+  .photo-preview{position:relative;margin-top:8px;}
+  .photo-preview img{width:100%;border-radius:12px;max-height:180px;object-fit:cover;display:block;}
+  .photo-remove{position:absolute;top:8px;right:8px;background:rgba(58,46,53,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:13px;}
+
+  .toast{
+    position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:var(--text); color:#fff;
+    padding:10px 18px; border-radius:999px; font-size:13px; z-index:50; opacity:0; pointer-events:none; transition:opacity .25s;
+    max-width:85%; text-align:center;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+  <div id="app">
+    <div class="topbar">
+      <h2 id="screenTitle">วันนี้</h2>
+      <button class="gear-btn" onclick="toggleSheet(true)">⚙️</button>
+    </div>
+
+    <main>
+      <section class="screen" id="screen-today">
+        <div class="section-label" id="todayDateLabel"></div>
+        <div id="todayList"></div>
+      </section>
+
+      <section class="screen" id="screen-goals">
+        <button class="add-goal-btn" onclick="openGoalForm(null)">＋ เป้าหมายใหม่</button>
+        <div id="goalsList"></div>
+      </section>
+
+      <section class="screen" id="screen-monthly">
+        <div class="cal-nav">
+          <button onclick="shiftCalMonth(-1)">‹</button>
+          <b id="calMonthLabel"></b>
+          <button onclick="shiftCalMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="legend" id="calLegend"></div>
+        <div id="calDayDetail"></div>
+      </section>
+
+      <section class="screen" id="screen-mood">
+        <div class="mood-range-toggle">
+          <button class="range-btn selected" data-range="7" onclick="setMoodRange(7)">7 วัน</button>
+          <button class="range-btn" data-range="30" onclick="setMoodRange(30)">30 วัน</button>
+        </div>
+        <div id="moodEmptyState"></div>
+        <div id="moodBody" style="display:none">
+          <div class="mood-avg">
+            <div class="card">
+              <div class="num" id="moodStressAvg">-</div>
+              <div class="lbl">เศร้า/เครียด เฉลี่ย<br>สัปดาห์นี้</div>
+              <div id="moodStressTrend"></div>
+            </div>
+            <div class="card">
+              <div class="num" id="moodEnergyAvg">-</div>
+              <div class="lbl">energy/happy เฉลี่ย<br>สัปดาห์นี้</div>
+              <div id="moodEnergyTrend"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-label" style="margin-top:0">⚡ Energy / Happy / Positive</div>
+            <div class="chart-bars" id="energyChart"></div>
+          </div>
+
+          <div class="card">
+            <div class="section-label" style="margin-top:0">😔 เศร้า / เครียด / เหนื่อย</div>
+            <div class="chart-bars" id="stressChart"></div>
+          </div>
+
+          <div class="section-label">บันทึกล่าสุด</div>
+          <div id="moodNotesList"></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-money">
+        <button class="add-goal-btn" onclick="openExpenseForm(null)">＋ รายจ่ายใหม่</button>
+        <div id="budgetList"></div>
+        <div class="section-label">รายจ่ายล่าสุด</div>
+        <div id="expenseList"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-screen="today" onclick="showScreen('today')"><span class="icon">🌤️</span>วันนี้</button>
+      <button class="nav-btn" data-screen="goals" onclick="showScreen('goals')"><span class="icon">🎯</span>เป้าหมาย</button>
+      <button class="nav-btn" data-screen="monthly" onclick="showScreen('monthly')"><span class="icon">📅</span>สรุปเดือน</button>
+      <button class="nav-btn" data-screen="mood" onclick="showScreen('mood')"><span class="icon">💗</span>อารมณ์</button>
+      <button class="nav-btn" data-screen="money" onclick="showScreen('money')"><span class="icon">💸</span>การเงิน</button>
+    </nav>
+
+    <!-- settings sheet -->
+    <div class="sheet-overlay" id="sheetOverlay" onclick="if(event.target===this)toggleSheet(false)">
+      <div class="sheet">
+        <h3>ตั้งค่า</h3>
+        <div class="sub">ข้อมูลทั้งหมดเก็บในเครื่องนี้เครื่องเดียว</div>
+
+        <div class="settings-row">
+          <div>
+            <div class="label">Export ข้อมูล</div>
+            <div class="desc">ดาวน์โหลดเป็นไฟล์ .json เก็บไว้กันหาย (รวมรูปภาพ)</div>
+          </div>
+          <button class="btn-secondary" onclick="exportData()">ดาวน์โหลด</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="label">Import ข้อมูล</div>
+            <div class="desc">นำไฟล์ .json ที่เคย export กลับเข้าแอพ</div>
+          </div>
+          <button class="btn-secondary" onclick="document.getElementById('importFile').click()">เลือกไฟล์</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(this.files[0])">
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="label">เวลาป็อปอัพเช้า</div>
+            <div class="desc">เวลาที่อยากให้แอพเริ่มถามเช็คอิน (เมื่อเปิดแอพครั้งแรกของวัน)</div>
+          </div>
+          <input type="time" id="morningTimeInput" class="time-input" onchange="saveMorningTime(this.value)">
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="label">แจ้งเตือนเช็คอิน</div>
+            <div class="desc" id="notifDesc">ปิดอยู่</div>
+          </div>
+          <button class="switch" id="notifSwitch" onclick="toggleNotif()"></button>
+        </div>
+
+        <div class="note-box">
+          📌 <b>เรื่องแจ้งเตือนที่อยากให้เข้าใจตรงกัน:</b><br>
+          ปุ่มนี้ขออนุญาตแจ้งเตือนจากเบราว์เซอร์/มือถือให้ — ตอนที่คุณ<b>เปิดแอพ</b>แล้วยังมีเป้าหมายค้างเช็คอิน แอพจะเด้งแจ้งเตือนให้ทันที<br><br>
+          แต่ถ้าอยากให้เตือน<b>ตอนไม่ได้เปิดแอพเลย</b> (เหมือนแอพทั่วไปที่เด้งเองตอนเช้า) ต้องกด "เพิ่มไปหน้าจอโฮม" ก่อน (บน iPhone ต้องเพิ่มขั้นนี้ก่อนเสมอ ไม่งั้นจะไม่มีแจ้งเตือนเลย) — ดูวิธีได้ในคู่มือติดตั้งด้านล่าง
+        </div>
+
+        <button class="btn-secondary" style="width:100%;margin-top:6px;" onclick="showInstallGuide()">📲 วิธีเพิ่มแอพไปหน้าจอโฮม</button>
+
+        <button class="close-sheet" onclick="toggleSheet(false)">ปิด</button>
+      </div>
+    </div>
+
+    <!-- goal form sheet -->
+    <div class="sheet-overlay" id="goalFormOverlay" onclick="if(event.target===this)closeGoalForm()">
+      <div class="sheet">
+        <h3 id="goalFormTitle">เป้าหมายใหม่</h3>
+
+        <div class="field-label">ชื่อเป้าหมาย</div>
+        <input class="modal-input" id="goalNameInput" placeholder="เช่น Weight Training">
+
+        <div class="field-label">สีประจำเป้าหมาย</div>
+        <div class="color-swatches" id="colorSwatches"></div>
+
+        <div class="field-label">ความถี่ต่อสัปดาห์</div>
+        <div class="freq-buttons" id="freqButtons"></div>
+
+        <div class="field-label">นาที/วัน (ถ้ามี)</div>
+        <input class="modal-input" id="goalMinutesInput" type="number" min="0" placeholder="เช่น 45">
+
+        <div class="field-label">ระยะเวลา</div>
+        <div class="date-row">
+          <div><input class="modal-input" id="goalStartInput" type="date"></div>
+          <div><input class="modal-input" id="goalEndInput" type="date"></div>
+        </div>
+
+        <div class="field-label">ขั้นตอนคร่าว ๆ (ถ้ามี)</div>
+        <textarea class="modal-input" id="goalStepsInput" placeholder="เช่น อุ่นเครื่อง 10 นาที + เวท 30 นาที + ยืดเหยียด"></textarea>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeGoalForm()">ยกเลิก</button>
+          <button class="btn-save" onclick="saveGoalForm()">บันทึกเป้าหมาย</button>
+        </div>
+
+        <div id="goalDangerZone" style="display:none">
+          <div class="danger-actions">
+            <button class="btn-neutral-outline" id="goalToggleActiveBtn" onclick="toggleGoalActive()">ปิดเป้าหมายนี้</button>
+            <button class="btn-danger-outline" onclick="deleteGoalPermanently()">ลบถาวร</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- install guide modal -->
+    <div class="modal-overlay" id="installGuideOverlay" onclick="if(event.target===this)closeInstallGuide()">
+      <div class="modal">
+        <h3>📲 เพิ่ม Vera ไปหน้าจอโฮม</h3>
+        <div class="sub">ทำครั้งเดียว แล้วเปิดแอพได้เหมือนแอพทั่วไป + มีแจ้งเตือนได้จริง</div>
+
+        <div class="field-label">🍎 iPhone (Safari)</div>
+        <ol class="install-steps">
+          <li>เปิดเว็บ Vera ด้วย Safari (ต้อง Safari เท่านั้น)</li>
+          <li>แตะปุ่ม "แชร์" (ไอคอนสี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่างจอ</li>
+          <li>เลื่อนหาเมนู "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen) แล้วแตะ</li>
+          <li>แตะ "เพิ่ม" มุมขวาบน — จะมีไอคอน Vera โผล่ที่หน้าจอโฮม</li>
+        </ol>
+
+        <div class="field-label">🤖 Android (Chrome)</div>
+        <ol class="install-steps">
+          <li>เปิดเว็บ Vera ด้วย Chrome</li>
+          <li>แตะเมนู 3 จุด มุมขวาบน</li>
+          <li>เลือก "ติดตั้งแอป" หรือ "เพิ่มลงในหน้าจอหลัก"</li>
+          <li>แตะ "ติดตั้ง" — จะมีไอคอน Vera โผล่ที่หน้าจอโฮม</li>
+        </ol>
+
+        <div class="note-box">หลังเพิ่มแล้ว ให้เปิด Vera จากไอคอนที่หน้าจอโฮม (ไม่ใช่เปิดจาก Safari/Chrome อีกที) แล้วกดเปิดแจ้งเตือนในหน้าตั้งค่าอีกครั้งเพื่อให้ทำงานได้เต็มที่</div>
+
+        <div class="modal-actions">
+          <button class="btn-save" style="flex:1" onclick="closeInstallGuide()">เข้าใจแล้ว</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- expense form sheet -->
+    <div class="sheet-overlay" id="expenseFormOverlay" onclick="if(event.target===this)closeExpenseForm()">
+      <div class="sheet">
+        <h3 id="expenseFormTitle">รายจ่ายใหม่</h3>
+
+        <div class="field-label">จำนวนเงิน (บาท)</div>
+        <input class="modal-input" id="expenseAmountInput" type="number" min="0" step="0.01" placeholder="เช่น 590">
+
+        <div class="field-label">หมวด</div>
+        <div class="cat-chips" id="expenseCategoryChips"></div>
+
+        <div class="field-label">วันที่</div>
+        <input class="modal-input" id="expenseDateInput" type="date">
+
+        <div class="field-label">โน้ต (ถ้ามี)</div>
+        <input class="modal-input" id="expenseNoteInput" placeholder="เช่น เซรั่มวิตซี">
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeExpenseForm()">ยกเลิก</button>
+          <button class="btn-save" onclick="saveExpenseForm()">บันทึกรายจ่าย</button>
+        </div>
+
+        <div id="expenseDeleteBtn" style="display:none">
+          <div class="danger-actions">
+            <button class="btn-danger-outline" onclick="deleteExpense()">ลบรายจ่ายนี้</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- budget edit modal -->
+    <div class="modal-overlay" id="budgetOverlay" onclick="if(event.target===this)closeBudgetForm()">
+      <div class="modal">
+        <h3 id="budgetFormTitle">ตั้งงบ</h3>
+        <div class="sub">งบต่อเดือนของหมวดนี้ — เตือนสีเหลืองเมื่อใกล้เกิน 80%, สีแดงเมื่อเกินงบ</div>
+        <div class="field-label">งบต่อเดือน (บาท)</div>
+        <input class="modal-input" id="budgetLimitInput" type="number" min="0" placeholder="0 = ยังไม่ตั้งงบ">
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeBudgetForm()">ยกเลิก</button>
+          <button class="btn-save" onclick="saveBudgetForm()">บันทึกงบ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- check-in modal -->
+    <div class="modal-overlay" id="checkinOverlay" onclick="if(event.target===this)closeCheckin()">
+      <div class="modal">
+        <h3 id="checkinGoalName">เช็คอิน</h3>
+        <div class="sub">วันนี้ทำสำเร็จแล้วใช่ไหม?</div>
+
+        <div id="checkinStep1">
+          <div class="yesno-row">
+            <button class="yesno-btn no" id="yesnoNo" onclick="chooseNo()">ยังไม่ได้ทำ</button>
+            <button class="yesno-btn yes" id="yesnoYes" onclick="chooseYes()">ทำแล้ว 🎉</button>
+          </div>
+        </div>
+
+        <div id="checkinStep2" style="display:none">
+          <div class="field-label">😔 เศร้า/เครียด/เหนื่อยไหม</div>
+          <div class="level-row" data-group="stress">
+            <div class="level-btn" data-val="0" onclick="selectLevel(this)">0</div>
+            <div class="level-btn" data-val="1" onclick="selectLevel(this)">1</div>
+            <div class="level-btn" data-val="2" onclick="selectLevel(this)">2</div>
+            <div class="level-btn" data-val="3" onclick="selectLevel(this)">3</div>
+          </div>
+          <div class="field-label">⚡ energy / happy / positive</div>
+          <div class="level-row" data-group="energy">
+            <div class="level-btn" data-val="0" onclick="selectLevel(this)">0</div>
+            <div class="level-btn" data-val="1" onclick="selectLevel(this)">1</div>
+            <div class="level-btn" data-val="2" onclick="selectLevel(this)">2</div>
+            <div class="level-btn" data-val="3" onclick="selectLevel(this)">3</div>
+          </div>
+          <div class="field-label">โน้ตถึงตัวเอง</div>
+          <textarea class="modal-input" id="checkinComment" placeholder="วันนี้เป็นยังไงบ้าง..."></textarea>
+
+          <div id="checkinPhotoBtn"><button class="photo-btn" onclick="triggerPhotoInput()">📷 แนบรูป (ถ่ายสด หรือเลือกจากคลัง — ไม่บังคับ)</button></div>
+          <div id="checkinPhotoPreviewWrap"></div>
+          <input type="file" id="checkinPhotoInput" accept="image/*" style="display:none" onchange="onPhotoSelected(this)">
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeCheckin()">ยกเลิก</button>
+            <button class="btn-save" onclick="saveCheckinDetailed()">บันทึกเช็คอิน</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+<script>
+  /* ================= Data layer: localStorage ================= */
+  const DATA_KEY = 'vera_data';
+  const UI_KEY = 'vera_ui_state';
+
+  const CATEGORIES = [
+    {id:'skincare', label:'Skincare', icon:'🧴'},
+    {id:'daily', label:'ของใช้ประจำวัน', icon:'🧻'},
+    {id:'clothes', label:'เสื้อผ้า/เครื่องประดับ', icon:'👗'},
+    {id:'medicine', label:'ยา-วิตามิน', icon:'💊'},
+    {id:'course', label:'ค่าเรียนอบรม', icon:'📚'},
+    {id:'food', label:'อาหาร/กาแฟ', icon:'☕'},
+    {id:'entertainment', label:'Entertainment', icon:'🎬'},
+    {id:'other', label:'อื่นๆ', icon:'🗂️'}
+  ];
+  const GOAL_COLORS = ['g-rose','g-lavender','g-sky','g-mint','g-peach','g-sun','g-coral','g-teal'];
+
+  function defaultData(){
+    return {
+      goals: [],
+      checkins: [],
+      expenses: [],
+      budgets: CATEGORIES.map(c => ({category:c.id, monthlyLimit:0})),
+      settings: { morningPopupTime:'07:30', notificationsEnabled:false }
+    };
+  }
+  function loadData(){
+    try{
+      const raw = localStorage.getItem(DATA_KEY);
+      if(!raw) { const d = defaultData(); saveData(d); return d; }
+      const d = JSON.parse(raw);
+      if(!d.goals) d.goals=[]; if(!d.checkins) d.checkins=[]; if(!d.expenses) d.expenses=[];
+      if(!d.budgets) d.budgets = CATEGORIES.map(c => ({category:c.id, monthlyLimit:0}));
+      if(!d.settings) d.settings = { morningPopupTime:'07:30', notificationsEnabled:false };
+      if(!d.settings.morningPopupTime){
+        const h = d.settings.morningPopupHour!=null ? d.settings.morningPopupHour : 7;
+        d.settings.morningPopupTime = String(h).padStart(2,'0')+':00';
+        delete d.settings.morningPopupHour;
+      }
+      if(d.settings.notificationsEnabled==null) d.settings.notificationsEnabled=false;
+      return d;
+    }catch(e){
+      console.error('vera_data corrupted, resetting', e);
+      const d = defaultData(); saveData(d); return d;
+    }
+  }
+  function saveData(d){ localStorage.setItem(DATA_KEY, JSON.stringify(d)); }
+  let veraData = loadData();
+
+  /* ================= Data layer: IndexedDB (photos) ================= */
+  const PHOTO_DB = 'vera_photos';
+  function openPhotoDB(){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(PHOTO_DB, 1);
+      req.onupgradeneeded = () => {
+        if(!req.result.objectStoreNames.contains('photos')){
+          req.result.createObjectStore('photos', {keyPath:'id'});
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function savePhoto(id, blob){
+    const db = await openPhotoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('photos','readwrite');
+      tx.objectStore('photos').put({id, blob});
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function getPhoto(id){
+    const db = await openPhotoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('photos','readonly');
+      const req = tx.objectStore('photos').get(id);
+      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function deletePhoto(id){
+    const db = await openPhotoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('photos','readwrite');
+      tx.objectStore('photos').delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function getAllPhotos(){
+    const db = await openPhotoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('photos','readonly');
+      const req = tx.objectStore('photos').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function clearAllPhotos(){
+    const db = await openPhotoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('photos','readwrite');
+      tx.objectStore('photos').clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  function blobToBase64(blob){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  async function base64ToBlob(base64){ const res = await fetch(base64); return res.blob(); }
+
+  /* ================= Export / Import ================= */
+  async function exportData(){
+    const photos = await getAllPhotos();
+    const photosB64 = [];
+    for(const p of photos){ photosB64.push({id:p.id, base64: await blobToBase64(p.blob)}); }
+    const bundle = { exportedAt: new Date().toISOString(), data: veraData, photos: photosB64 };
+    const blob = new Blob([JSON.stringify(bundle)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    a.href = url;
+    a.download = `vera-backup-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('ดาวน์โหลดไฟล์ backup แล้ว');
+  }
+  async function importData(file){
+    if(!file) return;
+    if(!confirm('นำเข้าข้อมูลจะทับข้อมูลปัจจุบันทั้งหมดในเครื่องนี้ ยืนยันไหม?')) {
+      document.getElementById('importFile').value = ''; return;
+    }
+    try{
+      const text = await file.text();
+      const bundle = JSON.parse(text);
+      if(!bundle.data) throw new Error('ไฟล์ไม่ถูกต้อง');
+      veraData = bundle.data;
+      saveData(veraData);
+      await clearAllPhotos();
+      if(Array.isArray(bundle.photos)){
+        for(const p of bundle.photos){ const blob = await base64ToBlob(p.base64); await savePhoto(p.id, blob); }
+      }
+      toast('นำเข้าข้อมูลสำเร็จ');
+      renderAll();
+    }catch(e){
+      console.error(e);
+      alert('นำเข้าไฟล์ไม่สำเร็จ: ไฟล์อาจไม่ถูกต้องหรือเสียหาย');
+    }finally{ document.getElementById('importFile').value = ''; }
+  }
+
+  /* ================= small utils ================= */
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dateStrOf(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function todayStr(){ return dateStrOf(new Date()); }
+  function addDays(d, n){ const nd=new Date(d); nd.setDate(nd.getDate()+n); return nd; }
+  function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent = s==null?'':s; return d.innerHTML; }
+
+  /* ================= navigation ================= */
+  const titles = {today:'วันนี้', goals:'เป้าหมาย', monthly:'สรุปเดือน', mood:'อารมณ์', money:'การเงิน'};
+
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+name).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+    document.getElementById('screenTitle').textContent = titles[name];
+    const ui = loadUiState(); ui.lastScreen = name; saveUiState(ui);
+  }
+  function loadUiState(){ try{ return JSON.parse(localStorage.getItem(UI_KEY)) || {}; }catch(e){ return {}; } }
+  function saveUiState(ui){ localStorage.setItem(UI_KEY, JSON.stringify(ui)); }
+
+  function toggleSheet(open){ document.getElementById('sheetOverlay').classList.toggle('open', open); }
+
+  function toggleNotif(){
+    if(!veraData.settings.notificationsEnabled){
+      if(!('Notification' in window)){
+        toast('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน');
+        return;
+      }
+      if(Notification.permission === 'denied'){
+        toast('แจ้งเตือนถูกบล็อกไว้ — ต้องไปเปิดเองในตั้งค่าเบราว์เซอร์/มือถือ');
+        return;
+      }
+      Notification.requestPermission().then(perm=>{
+        if(perm==='granted'){
+          veraData.settings.notificationsEnabled = true;
+          saveData(veraData); renderSettings();
+          toast('เปิดแจ้งเตือนแล้ว 🎉');
+        } else {
+          toast('ยังไม่ได้อนุญาตแจ้งเตือน');
+        }
+      });
+    } else {
+      veraData.settings.notificationsEnabled = false;
+      saveData(veraData); renderSettings();
+    }
+  }
+  function renderSettings(){
+    const denied = ('Notification' in window) && Notification.permission==='denied';
+    if(denied && veraData.settings.notificationsEnabled){
+      veraData.settings.notificationsEnabled = false;
+      saveData(veraData);
+    }
+    const on = veraData.settings.notificationsEnabled;
+    const time = veraData.settings.morningPopupTime || '07:30';
+    document.getElementById('notifSwitch').classList.toggle('on', on);
+    document.getElementById('morningTimeInput').value = time;
+    let desc = 'ปิดอยู่';
+    if(denied){
+      desc = 'ถูกบล็อกจากเบราว์เซอร์/มือถือ';
+    } else if(on){
+      desc = `เปิดอยู่ · เตือนตอน ${time} น.`;
+    }
+    document.getElementById('notifDesc').textContent = desc;
+  }
+  function saveMorningTime(val){
+    veraData.settings.morningPopupTime = val || '07:30';
+    saveData(veraData);
+    renderSettings();
+    toast('บันทึกเวลาแล้ว');
+  }
+  function showInstallGuide(){ document.getElementById('installGuideOverlay').classList.add('open'); }
+  function closeInstallGuide(){ document.getElementById('installGuideOverlay').classList.remove('open'); }
+
+  function comingSoon(){ toast('ฟีเจอร์นี้จะเปิดใช้งานใน TASK ถัดไป'); }
+
+  let toastTimer;
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+  }
+
+  /* ================= calendar (month-navigable heatmap) ================= */
+  let calViewYear=null, calViewMonth=null, selectedCalDate=null;
+
+  function renderCalendar(){
+    const now = new Date();
+    if(calViewYear==null){ calViewYear=now.getFullYear(); calViewMonth=now.getMonth(); }
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    const year = calViewYear, month = calViewMonth;
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    document.getElementById('calMonthLabel').textContent = `${monthNames[month]} ${year+543}`;
+    ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach(d=>{
+      const el = document.createElement('div'); el.className='dow'; el.textContent=d; grid.appendChild(el);
+    });
+    const firstDow = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const isCurrentMonth = year===now.getFullYear() && month===now.getMonth();
+    const todayDate = now.getDate();
+    for(let i=0;i<firstDow;i++){ const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el); }
+    for(let day=1; day<=daysInMonth; day++){
+      const dateStr = `${year}-${pad(month+1)}-${pad(day)}`;
+      const dayCheckins = veraData.checkins.filter(c=>c.date===dateStr && c.done);
+      const el=document.createElement('div');
+      let cls = 'cal-day';
+      if(isCurrentMonth && day===todayDate) cls+=' today';
+      if(dayCheckins.length>0) cls+=' has-data';
+      if(selectedCalDate===dateStr) cls+=' selected';
+      el.className = cls;
+      const num=document.createElement('div'); num.textContent=day; el.appendChild(num);
+      if(dayCheckins.length>0){
+        const dots=document.createElement('div'); dots.className='cal-dots';
+        dayCheckins.forEach(c=>{
+          const g = veraData.goals.find(x=>x.id===c.goalId);
+          const dot=document.createElement('span'); dot.className='cal-dot';
+          dot.style.background = g ? `var(--${g.colorId})` : 'var(--text-sub)';
+          dots.appendChild(dot);
+        });
+        el.appendChild(dots);
+        el.onclick = ()=> selectCalDay(dateStr);
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  function shiftCalMonth(delta){
+    calViewMonth += delta;
+    if(calViewMonth<0){ calViewMonth=11; calViewYear--; }
+    if(calViewMonth>11){ calViewMonth=0; calViewYear++; }
+    selectedCalDate=null;
+    renderCalendar(); renderCalLegend(); renderCalDayDetail();
+  }
+
+  function renderCalLegend(){
+    const monthPrefix = `${calViewYear}-${pad(calViewMonth+1)}`;
+    const goalIds = new Set(veraData.checkins.filter(c=>c.done && c.date.startsWith(monthPrefix)).map(c=>c.goalId));
+    const legendEl = document.getElementById('calLegend');
+    legendEl.innerHTML='';
+    goalIds.forEach(gid=>{
+      const g = veraData.goals.find(x=>x.id===gid);
+      if(!g) return;
+      const item=document.createElement('div'); item.className='legend-item';
+      item.innerHTML = `<span class="legend-dot" style="background:var(--${g.colorId})"></span>${escapeHtml(g.name)}`;
+      legendEl.appendChild(item);
+    });
+  }
+
+  function selectCalDay(dateStr){
+    selectedCalDate = (selectedCalDate===dateStr) ? null : dateStr;
+    renderCalendar();
+    renderCalDayDetail();
+  }
+
+  function renderCalDayDetail(){
+    const el = document.getElementById('calDayDetail');
+    if(!selectedCalDate){ el.innerHTML=''; return; }
+    const dayCheckins = veraData.checkins.filter(c=>c.date===selectedCalDate && c.done);
+    const d = new Date(selectedCalDate+'T00:00:00');
+    const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const label = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+    el.innerHTML = `<div class="section-label">${label}</div>`;
+    if(dayCheckins.length===0){
+      el.innerHTML += `<div class="card" style="text-align:center;color:var(--text-sub);font-size:13px;padding:20px;">ไม่มีเป้าหมายที่ทำสำเร็จวันนี้</div>`;
+      return;
+    }
+    const card = document.createElement('div'); card.className='card';
+    dayCheckins.forEach((c, idx)=>{
+      const g = veraData.goals.find(x=>x.id===c.goalId);
+      const row = document.createElement('div');
+      row.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:8px 0;'+(idx>0?'border-top:1px solid #f5eeef;':'');
+      const moodTxt = (c.stressLevel!=null && c.energyLevel!=null) ? `😔 ${c.stressLevel} · ⚡ ${c.energyLevel}` : '';
+      row.innerHTML = `
+        <span style="background:${g?`var(--${g.colorId})`:'var(--text-sub)'};width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13.5px;">${escapeHtml(g?g.name:'(ลบเป้าหมายแล้ว)')}</div>
+          ${moodTxt?`<div style="font-size:12px;color:var(--text-sub);margin-top:2px;">${moodTxt}</div>`:''}
+          ${c.comment?`<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(c.comment)}</div>`:''}
+          <div id="photoSlot_${c.id}" style="margin-top:6px;"></div>
+        </div>
+      `;
+      card.appendChild(row);
+      if(c.photoId){
+        getPhoto(c.photoId).then(blob=>{
+          if(!blob) return;
+          const slot = document.getElementById('photoSlot_'+c.id);
+          if(slot) slot.innerHTML = `<img src="${URL.createObjectURL(blob)}" style="width:100%;max-width:200px;border-radius:10px;display:block;">`;
+        });
+      }
+    });
+    el.appendChild(card);
+  }
+
+  /* ================= streak calculation ================= */
+  function startOfWeek(dateStr){
+    const d = new Date(dateStr+'T00:00:00');
+    d.setDate(d.getDate()-d.getDay());
+    return d;
+  }
+  function weekKey(dateStr){ return dateStrOf(startOfWeek(dateStr)); }
+
+  function computeStreak(goal){
+    const doneDates = veraData.checkins.filter(c=>c.goalId===goal.id && c.done).map(c=>c.date).sort();
+    if(doneDates.length===0) return 0;
+    const doneSet = new Set(doneDates);
+    if(goal.frequencyPerWeek >= 7){
+      let d = new Date(todayStr()+'T00:00:00');
+      if(!doneSet.has(dateStrOf(d))) d = addDays(d,-1);
+      let count=0;
+      while(doneSet.has(dateStrOf(d))){ count++; d=addDays(d,-1); }
+      return count;
+    } else {
+      const weekCounts = {};
+      doneDates.forEach(ds=>{ const wk=weekKey(ds); weekCounts[wk]=(weekCounts[wk]||0)+1; });
+      const wStart = startOfWeek(todayStr());
+      let count=0;
+      const curKey = dateStrOf(wStart);
+      if((weekCounts[curKey]||0) >= goal.frequencyPerWeek){ count++; }
+      let cursor = addDays(wStart,-7);
+      while(true){
+        const key = dateStrOf(cursor);
+        if((weekCounts[key]||0) >= goal.frequencyPerWeek){ count++; cursor = addDays(cursor,-7); }
+        else break;
+      }
+      return count;
+    }
+  }
+  function streakLabel(goal){
+    const n = computeStreak(goal);
+    if(n<=0) return '';
+    const unit = goal.frequencyPerWeek>=7 ? 'วัน' : 'สัปดาห์';
+    return `🔥 ${n} ${unit}`;
+  }
+
+  /* ================= Goals: render ================= */
+  function renderGoalsScreen(){
+    const active = veraData.goals.filter(g=>g.active);
+    const inactive = veraData.goals.filter(g=>!g.active);
+    const listEl = document.getElementById('goalsList');
+    listEl.innerHTML='';
+    if(active.length===0 && inactive.length===0){
+      listEl.innerHTML = `<div class="empty-state"><div class="icon">🎯</div><div class="title">ยังไม่มีเป้าหมาย</div><div class="desc">กดปุ่ม "+ เป้าหมายใหม่" ด้านบนเพื่อเริ่มต้น</div></div>`;
+      return;
+    }
+    active.forEach(g=> listEl.appendChild(goalListCard(g,false)));
+    if(inactive.length){
+      const label=document.createElement('div'); label.className='section-label'; label.textContent='ปิดแล้ว';
+      listEl.appendChild(label);
+      inactive.forEach(g=> listEl.appendChild(goalListCard(g,true)));
+    }
+  }
+  function goalListCard(g, isInactive){
+    const div=document.createElement('div');
+    div.className='card goal-list-card';
+    div.style.borderLeft = `6px solid var(--${g.colorId})`;
+    if(isInactive) div.style.opacity='0.6';
+    const freqTxt = g.frequencyPerWeek>=7 ? 'ทุกวัน' : `${g.frequencyPerWeek} วัน/สัปดาห์`;
+    const minTxt = g.minutesPerDay ? ` · ${g.minutesPerDay} นาที/วัน` : '';
+    const sLabel = streakLabel(g);
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="goal-title">${escapeHtml(g.name)}</span>
+        ${sLabel ? `<span class="streak-badge" style="margin-left:auto">${sLabel}</span>` : ''}
+      </div>
+      <div class="goal-sub">${freqTxt}${minTxt}</div>
+    `;
+    div.onclick = ()=> openGoalForm(g.id);
+    return div;
+  }
+
+  /* ================= Goals: form ================= */
+  let editingGoalId = null;
+  let selectedGoalColor, selectedFreq;
+
+  function openGoalForm(goalId){
+    editingGoalId = goalId || null;
+    const g = goalId ? veraData.goals.find(x=>x.id===goalId) : null;
+    document.getElementById('goalFormTitle').textContent = g ? 'แก้ไขเป้าหมาย' : 'เป้าหมายใหม่';
+    document.getElementById('goalNameInput').value = g ? g.name : '';
+    selectedGoalColor = g ? g.colorId : GOAL_COLORS[veraData.goals.length % GOAL_COLORS.length];
+    renderColorSwatches();
+    selectedFreq = g ? g.frequencyPerWeek : 7;
+    renderFreqButtons();
+    document.getElementById('goalMinutesInput').value = (g && g.minutesPerDay) ? g.minutesPerDay : '';
+    document.getElementById('goalStartInput').value = g ? g.startDate : todayStr();
+    document.getElementById('goalEndInput').value = (g && g.endDate) ? g.endDate : '';
+    document.getElementById('goalStepsInput').value = (g && g.steps) ? g.steps : '';
+    const dz = document.getElementById('goalDangerZone');
+    if(g){
+      dz.style.display='block';
+      document.getElementById('goalToggleActiveBtn').textContent = g.active ? 'ปิดเป้าหมายนี้' : 'เปิดใช้งานอีกครั้ง';
+    } else { dz.style.display='none'; }
+    document.getElementById('goalFormOverlay').classList.add('open');
+  }
+  function closeGoalForm(){ document.getElementById('goalFormOverlay').classList.remove('open'); }
+
+  function renderColorSwatches(){
+    const wrap = document.getElementById('colorSwatches'); wrap.innerHTML='';
+    GOAL_COLORS.forEach(c=>{
+      const el=document.createElement('div');
+      el.className='color-swatch'+(c===selectedGoalColor?' selected':'');
+      el.style.background=`var(--${c})`;
+      el.onclick=()=>{selectedGoalColor=c; renderColorSwatches();};
+      wrap.appendChild(el);
+    });
+  }
+  function renderFreqButtons(){
+    const wrap = document.getElementById('freqButtons'); wrap.innerHTML='';
+    for(let i=1;i<=7;i++){
+      const el=document.createElement('div');
+      el.className='freq-btn'+(i===selectedFreq?' selected':'');
+      el.textContent = i===7 ? 'ทุกวัน' : i;
+      el.onclick=()=>{selectedFreq=i; renderFreqButtons();};
+      wrap.appendChild(el);
+    }
+  }
+  function saveGoalForm(){
+    const name = document.getElementById('goalNameInput').value.trim();
+    if(!name){ toast('กรุณาใส่ชื่อเป้าหมาย'); return; }
+    const minutes = parseInt(document.getElementById('goalMinutesInput').value) || null;
+    const start = document.getElementById('goalStartInput').value || todayStr();
+    const end = document.getElementById('goalEndInput').value || null;
+    const steps = document.getElementById('goalStepsInput').value.trim();
+    if(editingGoalId){
+      const g = veraData.goals.find(x=>x.id===editingGoalId);
+      Object.assign(g, {name, colorId:selectedGoalColor, frequencyPerWeek:selectedFreq, minutesPerDay:minutes, startDate:start, endDate:end, steps});
+    } else {
+      veraData.goals.push({
+        id: uid('goal'), name, colorId:selectedGoalColor, frequencyPerWeek:selectedFreq,
+        minutesPerDay:minutes, steps, startDate:start, endDate:end, active:true, createdAt:Date.now()
+      });
+    }
+    saveData(veraData);
+    closeGoalForm();
+    renderGoalsScreen(); renderTodayScreen();
+    toast('บันทึกเป้าหมายแล้ว');
+  }
+  function toggleGoalActive(){
+    if(!editingGoalId) return;
+    const g = veraData.goals.find(x=>x.id===editingGoalId);
+    g.active = !g.active;
+    saveData(veraData);
+    closeGoalForm(); renderGoalsScreen(); renderTodayScreen();
+    toast(g.active ? 'เปิดใช้งานเป้าหมายอีกครั้ง' : 'ปิดเป้าหมายแล้ว');
+  }
+  function deleteGoalPermanently(){
+    if(!editingGoalId) return;
+    if(!confirm('ลบเป้าหมายนี้ถาวร รวมประวัติเช็คอินทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้')) return;
+    const gid = editingGoalId;
+    const relatedCheckins = veraData.checkins.filter(c=>c.goalId===gid);
+    (async ()=>{ for(const c of relatedCheckins){ if(c.photoId) await deletePhoto(c.photoId); } })();
+    veraData.checkins = veraData.checkins.filter(c=>c.goalId!==gid);
+    veraData.goals = veraData.goals.filter(g=>g.id!==gid);
+    saveData(veraData);
+    closeGoalForm(); renderGoalsScreen(); renderTodayScreen(); renderCalendar(); renderCalLegend(); renderCalDayDetail(); renderMoodScreen();
+    toast('ลบเป้าหมายแล้ว');
+  }
+
+  /* ================= Mood: render ================= */
+  let moodRange = 7;
+  function setMoodRange(n){
+    moodRange = n;
+    document.querySelectorAll('.range-btn').forEach(b=> b.classList.toggle('selected', parseInt(b.dataset.range)===n));
+    renderMoodScreen();
+  }
+
+  function trendHtml(curr, prev, higherIsBetter){
+    if(curr==null) return '';
+    if(prev==null) return `<span class="trend flat">สัปดาห์แรก</span>`;
+    const diff = curr - prev;
+    if(Math.abs(diff) < 0.05) return `<span class="trend flat">เท่ากับสัปดาห์ก่อน</span>`;
+    const improved = higherIsBetter ? diff>0 : diff<0;
+    const arrow = diff>0 ? '▲' : '▼';
+    const cls = improved ? 'up' : 'down';
+    return `<span class="trend ${cls}">${arrow} ${Math.abs(diff).toFixed(1)} จากสัปดาห์ก่อน</span>`;
+  }
+
+  function renderBarChart(elId, days, checkins, field, color){
+    const chart = document.getElementById(elId);
+    chart.innerHTML='';
+    days.forEach(dateStr=>{
+      const dayCheckins = checkins.filter(c=>c.date===dateStr);
+      let val = null;
+      if(dayCheckins.length){ val = dayCheckins.reduce((s,c)=>s+c[field],0)/dayCheckins.length; }
+      const col=document.createElement('div'); col.className='bar-col';
+      const track=document.createElement('div'); track.className='bar-track';
+      const bar=document.createElement('div'); bar.className='bar';
+      bar.style.height = val!=null ? Math.max(4,(val/3*100))+'%' : '2px';
+      bar.style.background = val!=null ? color : '#f1e6e9';
+      bar.title = val!=null ? val.toFixed(1) : '';
+      track.appendChild(bar); col.appendChild(track);
+      const d = new Date(dateStr+'T00:00:00');
+      const lbl=document.createElement('div'); lbl.className='dlabel'; lbl.textContent = d.getDate();
+      col.appendChild(lbl);
+      chart.appendChild(col);
+    });
+  }
+
+  function renderMoodNotesList(doneCheckins){
+    const el = document.getElementById('moodNotesList');
+    const withContent = doneCheckins.filter(c=>c.comment || c.photoId);
+    withContent.sort((a,b)=>{ if(a.date!==b.date) return a.date<b.date?1:-1; return (b.createdAt||0)-(a.createdAt||0); });
+    if(withContent.length===0){
+      el.innerHTML = `<div class="card" style="text-align:center;color:var(--text-sub);font-size:13px;padding:20px;">ยังไม่มีบันทึกที่มีโน้ตหรือรูป</div>`;
+      return;
+    }
+    el.innerHTML='';
+    withContent.slice(0,15).forEach(c=>{
+      const g = veraData.goals.find(x=>x.id===c.goalId);
+      const card=document.createElement('div'); card.className='card mood-note';
+      const thumbId = 'moodThumb_'+c.id;
+      card.innerHTML = `
+        <div class="thumb" id="${thumbId}">${c.photoId?'':'💭'}</div>
+        <div>
+          <div class="txt">${escapeHtml(c.comment || '(ไม่มีโน้ต)')}</div>
+          <div class="date">${fmtDateShort(c.date)} · ${escapeHtml(g?g.name:'')} · 😔${c.stressLevel} ⚡${c.energyLevel}</div>
+        </div>
+      `;
+      el.appendChild(card);
+      if(c.photoId){
+        getPhoto(c.photoId).then(blob=>{
+          if(!blob) return;
+          const t = document.getElementById(thumbId);
+          if(t) t.innerHTML = `<img src="${URL.createObjectURL(blob)}">`;
+        });
+      }
+    });
+  }
+
+  function renderMoodScreen(){
+    const doneCheckins = veraData.checkins.filter(c=>c.done && c.stressLevel!=null && c.energyLevel!=null);
+    const emptyEl = document.getElementById('moodEmptyState');
+    const bodyEl = document.getElementById('moodBody');
+    if(doneCheckins.length===0){
+      emptyEl.innerHTML = `<div class="empty-state"><div class="icon">💗</div><div class="title">ยังไม่มีบันทึกอารมณ์</div><div class="desc">พอเริ่มเช็คอินเป้าหมาย หน้านี้จะโชว์กราฟอารมณ์/พลังงานย้อนหลังให้อัตโนมัติ</div></div>`;
+      bodyEl.style.display='none';
+      return;
+    }
+    emptyEl.innerHTML=''; bodyEl.style.display='block';
+
+    const days=[];
+    for(let i=moodRange-1;i>=0;i--){ days.push(dateStrOf(addDays(new Date(), -i))); }
+
+    const thisWeekDates = new Set(); for(let i=0;i<7;i++) thisWeekDates.add(dateStrOf(addDays(new Date(),-i)));
+    const prevWeekDates = new Set(); for(let i=7;i<14;i++) prevWeekDates.add(dateStrOf(addDays(new Date(),-i)));
+
+    function avgFor(dateSet, field){
+      const vals = doneCheckins.filter(c=>dateSet.has(c.date)).map(c=>c[field]);
+      if(vals.length===0) return null;
+      return vals.reduce((a,b)=>a+b,0)/vals.length;
+    }
+    const stressThis = avgFor(thisWeekDates,'stressLevel');
+    const stressPrev = avgFor(prevWeekDates,'stressLevel');
+    const energyThis = avgFor(thisWeekDates,'energyLevel');
+    const energyPrev = avgFor(prevWeekDates,'energyLevel');
+
+    document.getElementById('moodStressAvg').textContent = stressThis!=null ? stressThis.toFixed(1) : '-';
+    document.getElementById('moodEnergyAvg').textContent = energyThis!=null ? energyThis.toFixed(1) : '-';
+    document.getElementById('moodStressTrend').innerHTML = trendHtml(stressThis, stressPrev, false);
+    document.getElementById('moodEnergyTrend').innerHTML = trendHtml(energyThis, energyPrev, true);
+
+    renderBarChart('energyChart', days, doneCheckins, 'energyLevel', 'var(--lavender)');
+    renderBarChart('stressChart', days, doneCheckins, 'stressLevel', 'var(--stress)');
+
+    renderMoodNotesList(doneCheckins);
+  }
+
+  /* ================= Money: render ================= */
+  function fmtMoney(n){ return Number(n||0).toLocaleString('th-TH', {maximumFractionDigits:0}); }
+  function fmtDateShort(dateStr){
+    const d = new Date(dateStr+'T00:00:00');
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return `${d.getDate()} ${months[d.getMonth()]}`;
+  }
+
+  function renderMoneyScreen(){
+    const monthPrefix = todayStr().slice(0,7);
+    const budgetListEl = document.getElementById('budgetList');
+    budgetListEl.innerHTML='';
+    CATEGORIES.forEach(cat=>{
+      const spent = veraData.expenses
+        .filter(e=>e.category===cat.id && e.date.slice(0,7)===monthPrefix)
+        .reduce((s,e)=>s+e.amount,0);
+      const budget = veraData.budgets.find(b=>b.category===cat.id) || {monthlyLimit:0};
+      const limit = budget.monthlyLimit || 0;
+      const row = document.createElement('div');
+      row.className='budget-row';
+      row.onclick = ()=> openBudgetForm(cat.id);
+      let barHtml, amtText;
+      if(limit > 0){
+        const pct = Math.min(100, (spent/limit)*100);
+        let color = 'var(--success)';
+        if(spent >= limit) color = 'var(--danger)';
+        else if(spent/limit >= 0.8) color = 'var(--warn)';
+        barHtml = `<div class="budget-bar"><div style="width:${pct}%;background:${color}"></div></div>`;
+        amtText = `${fmtMoney(spent)} / ${fmtMoney(limit)} ฿`;
+      } else {
+        barHtml = `<div class="budget-bar"><div style="width:0%"></div></div>`;
+        amtText = spent>0 ? `${fmtMoney(spent)} ฿ · แตะตั้งงบ` : 'แตะเพื่อตั้งงบ';
+      }
+      row.innerHTML = `<div class="top"><span class="cat">${cat.icon} ${cat.label}</span><span class="amt">${amtText}</span></div>${barHtml}`;
+      budgetListEl.appendChild(row);
+    });
+
+    const expenseListEl = document.getElementById('expenseList');
+    const sorted = [...veraData.expenses].sort((a,b)=>{
+      if(a.date!==b.date) return a.date < b.date ? 1 : -1;
+      return (b.createdAt||0)-(a.createdAt||0);
+    });
+    if(sorted.length===0){
+      expenseListEl.innerHTML = `<div class="empty-state"><div class="icon">💸</div><div class="title">ยังไม่มีรายจ่ายบันทึก</div><div class="desc">กดปุ่ม "+ รายจ่ายใหม่" ด้านบนเพื่อเริ่มบันทึก</div></div>`;
+      return;
+    }
+    const card = document.createElement('div'); card.className='card';
+    sorted.slice(0,30).forEach(e=>{
+      const cat = CATEGORIES.find(c=>c.id===e.category) || CATEGORIES[CATEGORIES.length-1];
+      const row = document.createElement('div');
+      row.className='expense-row';
+      row.onclick = ()=> openExpenseForm(e.id);
+      row.innerHTML = `<div>${escapeHtml(e.note || cat.label)}<div class="cat-tag">${cat.icon} ${cat.label} · ${fmtDateShort(e.date)}</div></div><div>${fmtMoney(e.amount)} ฿</div>`;
+      card.appendChild(row);
+    });
+    expenseListEl.innerHTML='';
+    expenseListEl.appendChild(card);
+  }
+
+  /* ---- expense form ---- */
+  let editingExpenseId = null, selectedExpenseCategory = null;
+  function openExpenseForm(expenseId){
+    editingExpenseId = expenseId || null;
+    const e = expenseId ? veraData.expenses.find(x=>x.id===expenseId) : null;
+    document.getElementById('expenseFormTitle').textContent = e ? 'แก้ไขรายจ่าย' : 'รายจ่ายใหม่';
+    document.getElementById('expenseAmountInput').value = e ? e.amount : '';
+    selectedExpenseCategory = e ? e.category : CATEGORIES[0].id;
+    renderExpenseCategoryChips();
+    document.getElementById('expenseDateInput').value = e ? e.date : todayStr();
+    document.getElementById('expenseNoteInput').value = (e && e.note) ? e.note : '';
+    document.getElementById('expenseDeleteBtn').style.display = e ? 'block' : 'none';
+    document.getElementById('expenseFormOverlay').classList.add('open');
+  }
+  function closeExpenseForm(){ document.getElementById('expenseFormOverlay').classList.remove('open'); }
+  function renderExpenseCategoryChips(){
+    const wrap = document.getElementById('expenseCategoryChips'); wrap.innerHTML='';
+    CATEGORIES.forEach(c=>{
+      const el = document.createElement('div');
+      el.className = 'cat-chip'+(c.id===selectedExpenseCategory?' selected':'');
+      el.textContent = c.icon+' '+c.label;
+      el.onclick = ()=>{ selectedExpenseCategory=c.id; renderExpenseCategoryChips(); };
+      wrap.appendChild(el);
+    });
+  }
+  function saveExpenseForm(){
+    const amount = parseFloat(document.getElementById('expenseAmountInput').value);
+    if(!amount || amount<=0){ toast('กรุณาใส่จำนวนเงิน'); return; }
+    const date = document.getElementById('expenseDateInput').value || todayStr();
+    const note = document.getElementById('expenseNoteInput').value.trim();
+    if(editingExpenseId){
+      const e = veraData.expenses.find(x=>x.id===editingExpenseId);
+      Object.assign(e, {amount, category:selectedExpenseCategory, date, note});
+    } else {
+      veraData.expenses.push({id:uid('exp'), amount, category:selectedExpenseCategory, date, note, createdAt:Date.now()});
+    }
+    saveData(veraData);
+    closeExpenseForm();
+    renderMoneyScreen();
+    toast('บันทึกรายจ่ายแล้ว');
+  }
+  function deleteExpense(){
+    if(!editingExpenseId) return;
+    if(!confirm('ลบรายจ่ายนี้ถาวร?')) return;
+    veraData.expenses = veraData.expenses.filter(e=>e.id!==editingExpenseId);
+    saveData(veraData);
+    closeExpenseForm();
+    renderMoneyScreen();
+    toast('ลบรายจ่ายแล้ว');
+  }
+
+  /* ---- budget form ---- */
+  let budgetEditingCategory = null;
+  function openBudgetForm(catId){
+    budgetEditingCategory = catId;
+    const cat = CATEGORIES.find(c=>c.id===catId);
+    const b = veraData.budgets.find(x=>x.category===catId);
+    document.getElementById('budgetFormTitle').textContent = 'ตั้งงบ · '+cat.label;
+    document.getElementById('budgetLimitInput').value = (b && b.monthlyLimit) ? b.monthlyLimit : '';
+    document.getElementById('budgetOverlay').classList.add('open');
+  }
+  function closeBudgetForm(){ document.getElementById('budgetOverlay').classList.remove('open'); }
+  function saveBudgetForm(){
+    const val = parseFloat(document.getElementById('budgetLimitInput').value) || 0;
+    let b = veraData.budgets.find(x=>x.category===budgetEditingCategory);
+    if(!b){ b = {category:budgetEditingCategory, monthlyLimit:0}; veraData.budgets.push(b); }
+    b.monthlyLimit = val;
+    saveData(veraData);
+    closeBudgetForm();
+    renderMoneyScreen();
+    toast('บันทึกงบแล้ว');
+  }
+
+  /* ================= Today: render ================= */
+  function renderTodayScreen(){
+    const listEl = document.getElementById('todayList');
+    const active = veraData.goals.filter(g=>g.active);
+    if(active.length===0){
+      listEl.innerHTML = `<div class="empty-state"><div class="icon">🌱</div><div class="title">ยังไม่มีเป้าหมายที่ต้องเช็คอินวันนี้</div><div class="desc">เริ่มตั้งเป้าหมายแรกของคุณที่แท็บ "เป้าหมาย"<br>เดี๋ยวจะมีป็อปอัพให้เช็คอินทุกวันที่นี่</div><button class="link-btn" onclick="showScreen('goals')">ไปตั้งเป้าหมาย</button></div>`;
+      return;
+    }
+    const t = todayStr();
+    listEl.innerHTML='';
+    active.forEach(g=>{
+      const c = veraData.checkins.find(x=>x.goalId===g.id && x.date===t);
+      const div = document.createElement('div');
+      div.className='card goal-card';
+      div.style.borderLeft = `6px solid var(--${g.colorId})`;
+      const freqTxt = g.frequencyPerWeek>=7 ? 'ทุกวัน' : `${g.frequencyPerWeek} วัน/สัปดาห์`;
+      const minTxt = g.minutesPerDay ? `${g.minutesPerDay} นาที · ` : '';
+      const sLabel = streakLabel(g);
+      let btnClass='todo', btnText='เช็คอิน';
+      if(c && c.done){ btnClass='done'; btnText='ทำแล้ว ✓'; }
+      else if(c && !c.done){ btnClass='skipped'; btnText='ยังไม่ได้ทำ'; }
+      div.innerHTML = `
+        <div>
+          <div class="goal-title">${escapeHtml(g.name)}</div>
+          <div class="goal-sub">${minTxt}${freqTxt}${sLabel? ' · '+sLabel:''}</div>
+        </div>
+        <button class="check-btn ${btnClass}" onclick="openCheckin('${g.id}')">${btnText}</button>
+      `;
+      listEl.appendChild(div);
+    });
+  }
+
+  /* ================= Check-in modal ================= */
+  let checkinGoalId=null, checkinPhotoFile=null, checkinRemovePhoto=false;
+
+  function openCheckin(goalId){
+    checkinGoalId = goalId;
+    checkinPhotoFile=null; checkinRemovePhoto=false;
+    const g = veraData.goals.find(x=>x.id===goalId);
+    const t = todayStr();
+    const existing = veraData.checkins.find(c=>c.goalId===goalId && c.date===t);
+    document.getElementById('checkinGoalName').textContent = 'เช็คอิน · ' + g.name;
+    document.getElementById('checkinComment').value = existing && existing.comment ? existing.comment : '';
+    setLevel('stress', existing && existing.stressLevel!=null ? existing.stressLevel : null);
+    setLevel('energy', existing && existing.energyLevel!=null ? existing.energyLevel : null);
+    renderCheckinPhotoPreview(existing && existing.photoId ? existing.photoId : null);
+
+    if(existing && existing.done){
+      setYesNo('yes'); showCheckinStep('step2');
+    } else if(existing && !existing.done){
+      setYesNo('no'); showCheckinStep('step1');
+    } else {
+      setYesNo(null); showCheckinStep('step1');
+    }
+    document.getElementById('checkinOverlay').classList.add('open');
+  }
+  function setYesNo(v){
+    document.getElementById('yesnoYes').classList.toggle('selected', v==='yes');
+    document.getElementById('yesnoNo').classList.toggle('selected', v==='no');
+  }
+  function showCheckinStep(step){
+    document.getElementById('checkinStep1').style.display = step==='step1' ? 'block':'none';
+    document.getElementById('checkinStep2').style.display = step==='step2' ? 'block':'none';
+  }
+  function chooseYes(){ setYesNo('yes'); showCheckinStep('step2'); }
+  function chooseNo(){ setYesNo('no'); saveCheckinRecord(false, null); }
+
+  function setLevel(group, val){
+    document.querySelectorAll(`.level-row[data-group="${group}"] .level-btn`).forEach(b=>{
+      b.classList.toggle('selected', val!=null && parseInt(b.dataset.val)===val);
+    });
+  }
+  function selectLevel(el){
+    el.parentElement.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function getSelectedLevel(group){
+    const sel = document.querySelector(`.level-row[data-group="${group}"] .level-btn.selected`);
+    return sel ? parseInt(sel.dataset.val) : null;
+  }
+
+  function triggerPhotoInput(){ document.getElementById('checkinPhotoInput').click(); }
+  function onPhotoSelected(input){
+    const file = input.files[0];
+    if(!file) return;
+    checkinPhotoFile = file;
+    checkinRemovePhoto = false;
+    renderCheckinPhotoPreviewUrl(URL.createObjectURL(file));
+  }
+  function renderCheckinPhotoPreview(photoId){
+    if(!photoId){ document.getElementById('checkinPhotoPreviewWrap').innerHTML=''; document.getElementById('checkinPhotoBtn').style.display='block'; return; }
+    document.getElementById('checkinPhotoBtn').style.display='none';
+    getPhoto(photoId).then(blob=>{
+      if(!blob){ document.getElementById('checkinPhotoBtn').style.display='block'; return; }
+      renderCheckinPhotoPreviewUrl(URL.createObjectURL(blob));
+    });
+  }
+  function renderCheckinPhotoPreviewUrl(url){
+    document.getElementById('checkinPhotoBtn').style.display='none';
+    document.getElementById('checkinPhotoPreviewWrap').innerHTML = `<div class="photo-preview"><img src="${url}"><button class="photo-remove" onclick="removeCheckinPhoto()">✕</button></div>`;
+  }
+  function removeCheckinPhoto(){
+    checkinPhotoFile=null; checkinRemovePhoto=true;
+    document.getElementById('checkinPhotoPreviewWrap').innerHTML='';
+    document.getElementById('checkinPhotoBtn').style.display='block';
+  }
+
+  function closeCheckin(){ document.getElementById('checkinOverlay').classList.remove('open'); }
+
+  function saveCheckinDetailed(){
+    const stress = getSelectedLevel('stress');
+    const energy = getSelectedLevel('energy');
+    if(stress==null || energy==null){ toast('กรุณาเลือกระดับความรู้สึกทั้งสองข้อ'); return; }
+    const comment = document.getElementById('checkinComment').value.trim();
+    saveCheckinRecord(true, {stress, energy, comment});
+  }
+
+  async function saveCheckinRecord(done, detail){
+    const t = todayStr();
+    let c = veraData.checkins.find(x=>x.goalId===checkinGoalId && x.date===t);
+    let photoId = c ? c.photoId : null;
+
+    if(checkinRemovePhoto && photoId){ await deletePhoto(photoId); photoId=null; }
+    if(checkinPhotoFile){
+      if(photoId) await deletePhoto(photoId);
+      photoId = uid('photo');
+      await savePhoto(photoId, checkinPhotoFile);
+    }
+
+    if(!c){ c = {id: uid('chk'), goalId:checkinGoalId, date:t, createdAt:Date.now()}; veraData.checkins.push(c); }
+    c.done = done;
+    if(done && detail){
+      c.stressLevel = detail.stress; c.energyLevel = detail.energy; c.comment = detail.comment;
+    } else if(!done){
+      delete c.stressLevel; delete c.energyLevel; delete c.comment;
+    }
+    if(photoId) c.photoId = photoId; else delete c.photoId;
+
+    saveData(veraData);
+    document.getElementById('checkinOverlay').classList.remove('open');
+    renderTodayScreen(); renderGoalsScreen(); renderCalendar(); renderCalLegend(); renderCalDayDetail(); renderMoodScreen();
+    toast(done ? 'บันทึกเช็คอินแล้ว 🎉' : 'บันทึกแล้ว');
+    advanceAutoQueue();
+  }
+
+  /* ================= morning auto-popup queue ================= */
+  let checkinAutoQueue = [];
+  function maybeRunMorningPopup(){
+    const ui = loadUiState();
+    const t = todayStr();
+    if(ui.lastAutoPopupDate === t) return;
+    const active = veraData.goals.filter(g=>g.active);
+    const pending = active.filter(g=> !veraData.checkins.find(c=>c.goalId===g.id && c.date===t));
+    ui.lastAutoPopupDate = t;
+    saveUiState(ui);
+    if(pending.length===0) return;
+    if(veraData.settings.notificationsEnabled && 'Notification' in window && Notification.permission==='granted'){
+      try{
+        new Notification('Vera', { body: `มี ${pending.length} เป้าหมายรอเช็คอินวันนี้ 🌱`, icon:'./icon-192.png' });
+      }catch(e){ console.error('notification failed', e); }
+    }
+    checkinAutoQueue = pending.map(g=>g.id);
+    showScreen('today');
+    runNextAutoQueue();
+  }
+  function runNextAutoQueue(){
+    if(checkinAutoQueue.length===0) return;
+    const goalId = checkinAutoQueue.shift();
+    openCheckin(goalId);
+  }
+  function advanceAutoQueue(){ if(checkinAutoQueue.length>0){ setTimeout(runNextAutoQueue, 300); } }
+
+  /* also advance the queue if user cancels via the overlay/step1 (not just on save) */
+  document.addEventListener('click', (e)=>{
+    if(e.target && (e.target.matches('.modal-overlay') || e.target.closest('.btn-cancel'))){
+      if(e.target.closest('#checkinOverlay')) advanceAutoQueue();
+    }
+  });
+
+  /* ================= boot ================= */
+  function renderAll(){
+    renderSettings();
+    renderCalendar();
+    renderCalLegend();
+    renderCalDayDetail();
+    renderGoalsScreen();
+    renderTodayScreen();
+    renderMoneyScreen();
+    renderMoodScreen();
+    const now = new Date();
+    const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    document.getElementById('todayDateLabel').textContent =
+      `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}`;
+  }
+
+  (function boot(){
+    renderAll();
+    const ui = loadUiState();
+    showScreen(ui.lastScreen && titles[ui.lastScreen] ? ui.lastScreen : 'today');
+    maybeRunMorningPopup();
+  })();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./sw.js').catch(err=>console.error('SW register failed', err));
+    });
+  }
+</script>
+
+</body>
+</html>
