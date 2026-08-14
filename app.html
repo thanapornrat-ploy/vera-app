@@ -306,6 +306,8 @@
 
       <section class="screen" id="screen-money">
         <button class="add-goal-btn" onclick="openExpenseForm(null)">＋ รายจ่ายใหม่</button>
+        <div id="moneyRunningLow"></div>
+        <div id="moneyRecurringSummary"></div>
         <div id="budgetList"></div>
         <div class="section-label">รายจ่ายล่าสุด</div>
         <div id="expenseList"></div>
@@ -469,17 +471,25 @@
       <div class="sheet">
         <h3 id="expenseFormTitle">รายจ่ายใหม่</h3>
 
+        <div class="field-label" style="margin-top:0">รายการนี้คืออะไร</div>
+        <input class="modal-input" id="expenseNoteInput" placeholder="เช่น โทนเนอร์ Simple">
+
         <div class="field-label">จำนวนเงิน (บาท)</div>
-        <input class="modal-input" id="expenseAmountInput" type="number" min="0" step="0.01" placeholder="เช่น 590">
+        <input class="modal-input" id="expenseAmountInput" type="number" min="0" step="0.01" placeholder="เช่น 590" oninput="updateExpenseCalcPreview()">
 
         <div class="field-label">หมวด</div>
         <div class="cat-chips" id="expenseCategoryChips"></div>
 
-        <div class="field-label">วันที่</div>
+        <div class="field-label">หมวดย่อย (ถ้ามี)</div>
+        <input class="modal-input" id="expenseSubcatInput" list="expenseSubcatList" placeholder="เช่น Toner">
+        <datalist id="expenseSubcatList"></datalist>
+
+        <div class="field-label">วันที่เริ่มใช้/ซื้อ</div>
         <input class="modal-input" id="expenseDateInput" type="date">
 
-        <div class="field-label">โน้ต (ถ้ามี)</div>
-        <input class="modal-input" id="expenseNoteInput" placeholder="เช่น เซรั่มวิตซี">
+        <div class="field-label">ใช้ได้กี่วัน (ถ้ามี — สำหรับของที่ใช้แล้วหมด เช่น สกินแคร์)</div>
+        <input class="modal-input" id="expenseDurationInput" type="number" min="1" placeholder="เช่น 60" oninput="updateExpenseCalcPreview()">
+        <div id="expenseCalcPreview"></div>
 
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeExpenseForm()">ยกเลิก</button>
@@ -1365,8 +1375,67 @@
     return `${d.getDate()} ${months[d.getMonth()]}`;
   }
 
+  function computeExpenseStats(e){
+    if(!e.durationDays || e.durationDays<=0) return null;
+    const start = new Date(e.date+'T00:00:00');
+    const end = addDays(start, e.durationDays);
+    const today = new Date(todayStr()+'T00:00:00');
+    const daysRemaining = Math.ceil((end-today)/(1000*60*60*24));
+    const pricePerDay = e.amount / e.durationDays;
+    return {
+      daysRemaining, pricePerDay, monthlyEquivalent: pricePerDay*30,
+      isExpired: daysRemaining<0, isRunningLow: daysRemaining>=0 && daysRemaining<=5
+    };
+  }
+
+  function renderMoneyRunningLow(){
+    const withStats = veraData.expenses
+      .map(e=>({e, stats:computeExpenseStats(e)}))
+      .filter(x=>x.stats && (x.stats.isRunningLow || x.stats.isExpired));
+    const el = document.getElementById('moneyRunningLow');
+    if(withStats.length===0){ el.innerHTML=''; return; }
+    withStats.sort((a,b)=>a.stats.daysRemaining-b.stats.daysRemaining);
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `<div class="field-label" style="margin-top:0">🔔 ใกล้หมด / หมดแล้ว</div>`;
+    withStats.forEach(({e, stats}, idx)=>{
+      const cat = CATEGORIES.find(c=>c.id===e.category);
+      const stock = veraData.expenses.filter(o=>
+        o.id!==e.id && o.category===e.category && (o.subcategory||'')===(e.subcategory||'')
+      ).map(o=>({o, s:computeExpenseStats(o)})).find(x=>x.s && !x.s.isExpired && !x.s.isRunningLow);
+      const statusTxt = stats.isExpired ? 'หมดแล้ว' : `เหลืออีก ${stats.daysRemaining} วัน`;
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:8px 0;'+(idx>0?'border-top:1px solid #f5eeef;':'');
+      row.innerHTML = `
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span><b>${escapeHtml(e.note || cat?.label || '')}</b>${e.subcategory?` · ${escapeHtml(e.subcategory)}`:''}</span>
+          <span style="color:var(--danger);font-weight:600;">${statusTxt}</span>
+        </div>
+        ${stock ? `<div style="font-size:11.5px;color:var(--text-sub);margin-top:2px;">💡 ยังมี "${escapeHtml(stock.o.note||'')}" เหลืออีก ${stock.s.daysRemaining} วัน — ยังไม่ต้องซื้อเพิ่มก็ได้</div>` : ''}
+      `;
+      card.appendChild(row);
+    });
+    el.innerHTML='';
+    el.appendChild(card);
+  }
+
+  function renderMoneyRecurringSummary(){
+    const active = veraData.expenses.map(e=>({e, stats:computeExpenseStats(e)})).filter(x=>x.stats && !x.stats.isExpired);
+    const el = document.getElementById('moneyRecurringSummary');
+    if(active.length===0){ el.innerHTML=''; return; }
+    const total = active.reduce((s,x)=>s+x.stats.monthlyEquivalent, 0);
+    el.innerHTML = `<div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12.5px;color:var(--text-sub);">ค่าใช้จ่ายต่อเนื่องโดยประมาณ</div>
+        <div style="font-size:11px;color:var(--text-sub);">จากของใช้ที่กำลังใช้อยู่ ${active.length} รายการ</div>
+      </div>
+      <div style="font-size:19px;font-weight:700;font-family:'Bai Jamjuree',sans-serif;">${fmtMoney(total)} ฿<span style="font-size:11px;color:var(--text-sub);font-weight:400;">/เดือน</span></div>
+    </div>`;
+  }
+
   function renderMoneyScreen(){
     const monthPrefix = todayStr().slice(0,7);
+    renderMoneyRunningLow();
+    renderMoneyRecurringSummary();
     const budgetListEl = document.getElementById('budgetList');
     budgetListEl.innerHTML='';
     CATEGORIES.forEach(cat=>{
@@ -1406,10 +1475,14 @@
     const card = document.createElement('div'); card.className='card';
     sorted.slice(0,30).forEach(e=>{
       const cat = CATEGORIES.find(c=>c.id===e.category) || CATEGORIES[CATEGORIES.length-1];
+      const stats = computeExpenseStats(e);
+      const catTag = `${cat.icon} ${cat.label}${e.subcategory ? ' · '+escapeHtml(e.subcategory) : ''} · ${fmtDateShort(e.date)}`;
+      const durTag = stats ? `<div class="cat-tag">${stats.isExpired ? 'หมดแล้ว' : `เหลืออีก ${stats.daysRemaining} วัน`} · ${stats.pricePerDay.toFixed(1)} ฿/วัน</div>` : '';
       const row = document.createElement('div');
       row.className='expense-row';
+      row.style.alignItems = stats ? 'flex-start' : 'center';
       row.onclick = ()=> openExpenseForm(e.id);
-      row.innerHTML = `<div>${escapeHtml(e.note || cat.label)}<div class="cat-tag">${cat.icon} ${cat.label} · ${fmtDateShort(e.date)}</div></div><div>${fmtMoney(e.amount)} ฿</div>`;
+      row.innerHTML = `<div>${escapeHtml(e.note || cat.label)}<div class="cat-tag">${catTag}</div>${durTag}</div><div>${fmtMoney(e.amount)} ฿</div>`;
       card.appendChild(row);
     });
     expenseListEl.innerHTML='';
@@ -1427,7 +1500,10 @@
     renderExpenseCategoryChips();
     document.getElementById('expenseDateInput').value = e ? e.date : todayStr();
     document.getElementById('expenseNoteInput').value = (e && e.note) ? e.note : '';
+    document.getElementById('expenseSubcatInput').value = (e && e.subcategory) ? e.subcategory : '';
+    document.getElementById('expenseDurationInput').value = (e && e.durationDays) ? e.durationDays : '';
     document.getElementById('expenseDeleteBtn').style.display = e ? 'block' : 'none';
+    updateExpenseCalcPreview();
     document.getElementById('expenseFormOverlay').classList.add('open');
   }
   function closeExpenseForm(){ document.getElementById('expenseFormOverlay').classList.remove('open'); }
@@ -1437,20 +1513,41 @@
       const el = document.createElement('div');
       el.className = 'cat-chip'+(c.id===selectedExpenseCategory?' selected':'');
       el.textContent = c.icon+' '+c.label;
-      el.onclick = ()=>{ selectedExpenseCategory=c.id; renderExpenseCategoryChips(); };
+      el.onclick = ()=>{ selectedExpenseCategory=c.id; renderExpenseCategoryChips(); renderExpenseSubcatOptions(); };
       wrap.appendChild(el);
     });
+    renderExpenseSubcatOptions();
+  }
+  function renderExpenseSubcatOptions(){
+    const list = document.getElementById('expenseSubcatList');
+    const subcats = [...new Set(
+      veraData.expenses
+        .filter(e=>e.category===selectedExpenseCategory && e.subcategory)
+        .map(e=>e.subcategory)
+    )];
+    list.innerHTML = subcats.map(s=>`<option value="${escapeHtml(s)}">`).join('');
+  }
+  function updateExpenseCalcPreview(){
+    const amount = parseFloat(document.getElementById('expenseAmountInput').value);
+    const duration = parseInt(document.getElementById('expenseDurationInput').value);
+    const el = document.getElementById('expenseCalcPreview');
+    if(!amount || !duration || duration<=0){ el.innerHTML=''; return; }
+    const perDay = amount/duration;
+    el.innerHTML = `<div class="note-box">ตกวันละ <b>${perDay.toFixed(1)} ฿</b> · ประมาณ <b>${fmtMoney(perDay*30)} ฿/เดือน</b></div>`;
   }
   function saveExpenseForm(){
     const amount = parseFloat(document.getElementById('expenseAmountInput').value);
     if(!amount || amount<=0){ toast('กรุณาใส่จำนวนเงิน'); return; }
     const date = document.getElementById('expenseDateInput').value || todayStr();
     const note = document.getElementById('expenseNoteInput').value.trim();
+    const subcategory = document.getElementById('expenseSubcatInput').value.trim();
+    const durationDays = parseInt(document.getElementById('expenseDurationInput').value) || null;
+    const payload = {amount, category:selectedExpenseCategory, subcategory, date, note, durationDays};
     if(editingExpenseId){
       const e = veraData.expenses.find(x=>x.id===editingExpenseId);
-      Object.assign(e, {amount, category:selectedExpenseCategory, date, note});
+      Object.assign(e, payload);
     } else {
-      veraData.expenses.push({id:uid('exp'), amount, category:selectedExpenseCategory, date, note, createdAt:Date.now()});
+      veraData.expenses.push({id:uid('exp'), ...payload, createdAt:Date.now()});
     }
     saveData(veraData);
     closeExpenseForm();
