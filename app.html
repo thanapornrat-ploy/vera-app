@@ -321,6 +321,9 @@
           <button class="btn-save" style="width:100%;margin-top:12px;border-radius:12px;padding:12px;" onclick="saveDiaryEntry()">บันทึกไดอารี่</button>
         </div>
 
+        <div class="section-label">บันทึกที่ผ่านมา</div>
+        <div id="diaryEntriesList"></div>
+
         <div class="section-label">สรุปเดือน</div>
         <div class="card">
           <div class="cal-nav">
@@ -510,6 +513,9 @@
       <div class="modal">
         <h3 id="checkinGoalName">เช็คอิน</h3>
         <div class="sub">วันนี้ทำสำเร็จแล้วใช่ไหม?</div>
+
+        <div class="field-label" style="margin-top:0">วันที่บันทึก</div>
+        <input type="date" class="modal-input" id="checkinDateInput" onchange="onCheckinDateChange(this.value)">
 
         <div id="checkinStep1">
           <div class="yesno-row">
@@ -1213,16 +1219,47 @@
 
   function saveDiaryEntry(){
     if(!diarySelectedMood){ toast('เลือกอารมณ์ก่อนนะ'); return; }
-    const t = todayStr();
     const text = document.getElementById('diaryTextInput').value.trim();
-    let entry = veraData.diary.find(d=>d.date===t);
-    if(!entry){ entry = {id:uid('diary'), date:t, createdAt:Date.now()}; veraData.diary.push(entry); }
-    entry.mood = diarySelectedMood;
-    entry.text = text;
+    veraData.diary.push({ id:uid('diary'), date:todayStr(), mood:diarySelectedMood, text, createdAt:Date.now() });
     saveData(veraData);
     toast('บันทึกไดอารี่แล้ว 💗');
+
+    diarySelectedMood = null;
+    renderDiaryMoodButtons();
+    document.getElementById('diaryTextInput').value = '';
+
+    renderDiaryEntriesList();
     renderDiaryCalendar();
     renderDiaryDayDetail();
+  }
+
+  function fmtTime(ts){
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function renderDiaryEntriesList(){
+    const el = document.getElementById('diaryEntriesList');
+    const sorted = [...veraData.diary].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(sorted.length===0){
+      el.innerHTML = `<div class="card" style="text-align:center;color:var(--text-sub);font-size:13px;padding:20px;">ยังไม่มีบันทึก เริ่มเขียนอันแรกได้เลย</div>`;
+      return;
+    }
+    const card = document.createElement('div'); card.className='card';
+    sorted.slice(0,40).forEach((entry, idx)=>{
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 0;'+(idx>0?'border-top:1px solid #f5eeef;':'');
+      row.innerHTML = `
+        <div style="font-size:24px;flex-shrink:0;">${MOOD_EMOJI[entry.mood] || '❓'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:var(--text-sub);">${fmtDateShort(entry.date)} · ${fmtTime(entry.createdAt)}</div>
+          ${entry.text ? `<div style="font-size:13px;margin-top:2px;">${escapeHtml(entry.text)}</div>` : ''}
+        </div>
+      `;
+      card.appendChild(row);
+    });
+    el.innerHTML = '';
+    el.appendChild(card);
   }
 
   function renderDiaryScreen(){
@@ -1231,12 +1268,11 @@
     const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
     document.getElementById('diaryDateLabel').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}`;
 
-    const t = todayStr();
-    const existing = veraData.diary.find(d=>d.date===t);
-    diarySelectedMood = existing ? existing.mood : null;
+    diarySelectedMood = null;
     renderDiaryMoodButtons();
-    document.getElementById('diaryTextInput').value = (existing && existing.text) ? existing.text : '';
+    document.getElementById('diaryTextInput').value = '';
 
+    renderDiaryEntriesList();
     renderDiaryCalendar();
     renderDiaryDayDetail();
   }
@@ -1259,15 +1295,16 @@
     for(let i=0;i<firstDow;i++){ const el=document.createElement('div'); el.className='cal-day empty'; grid.appendChild(el); }
     for(let day=1; day<=daysInMonth; day++){
       const dateStr = `${year}-${pad(month+1)}-${pad(day)}`;
-      const entry = veraData.diary.find(d=>d.date===dateStr);
+      const dayEntries = veraData.diary.filter(d=>d.date===dateStr).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+      const lastEntry = dayEntries[dayEntries.length-1];
       const el=document.createElement('div');
       let cls='cal-day';
       if(isCurrentMonth && day===todayDate) cls+=' today';
-      if(entry) cls+=' has-data';
+      if(lastEntry) cls+=' has-data';
       if(diarySelectedDate===dateStr) cls+=' selected';
       el.className=cls;
-      if(entry){
-        el.innerHTML = `<span class="diary-emoji">${MOOD_EMOJI[entry.mood]}</span>`;
+      if(lastEntry){
+        el.innerHTML = `<span class="diary-emoji">${MOOD_EMOJI[lastEntry.mood] || '❓'}</span>`;
         el.onclick = ()=> selectDiaryCalDay(dateStr);
       } else {
         el.textContent = day;
@@ -1294,22 +1331,30 @@
   function renderDiaryDayDetail(){
     const el = document.getElementById('diaryDayDetail');
     if(!diarySelectedDate){ el.innerHTML=''; return; }
-    const entry = veraData.diary.find(d=>d.date===diarySelectedDate);
+    const entries = veraData.diary.filter(d=>d.date===diarySelectedDate).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     const d = new Date(diarySelectedDate+'T00:00:00');
     const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
     const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
     const label = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
-    if(!entry){
+    if(entries.length===0){
       el.innerHTML = `<div class="section-label">${label}</div><div class="card" style="text-align:center;color:var(--text-sub);font-size:13px;padding:20px;">ไม่มีบันทึกวันนี้</div>`;
       return;
     }
-    el.innerHTML = `
-      <div class="section-label">${label}</div>
-      <div class="card">
-        <div style="font-size:32px;">${MOOD_EMOJI[entry.mood]}</div>
-        ${entry.text ? `<div style="font-size:13px;margin-top:8px;">${escapeHtml(entry.text)}</div>` : ''}
-      </div>
-    `;
+    const card = document.createElement('div'); card.className='card';
+    entries.forEach((entry, idx)=>{
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:8px 0;'+(idx>0?'border-top:1px solid #f5eeef;':'');
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:24px;">${MOOD_EMOJI[entry.mood] || '❓'}</span>
+          <span style="font-size:11px;color:var(--text-sub);">${fmtTime(entry.createdAt)}</span>
+        </div>
+        ${entry.text ? `<div style="font-size:13px;margin-top:4px;">${escapeHtml(entry.text)}</div>` : ''}
+      `;
+      card.appendChild(row);
+    });
+    el.innerHTML = `<div class="section-label">${label}</div>`;
+    el.appendChild(card);
   }
 
   /* ================= Money: render ================= */
@@ -1477,14 +1522,27 @@
   }
 
   /* ================= Check-in modal ================= */
-  let checkinGoalId=null, checkinPhotoFile=null, checkinRemovePhoto=false;
+  let checkinGoalId=null, checkinDate=null, checkinPhotoFile=null, checkinRemovePhoto=false;
 
   function openCheckin(goalId){
     checkinGoalId = goalId;
-    checkinPhotoFile=null; checkinRemovePhoto=false;
-    const g = veraData.goals.find(x=>x.id===goalId);
-    const t = todayStr();
-    const existing = veraData.checkins.find(c=>c.goalId===goalId && c.date===t);
+    checkinDate = todayStr();
+    const dateInput = document.getElementById('checkinDateInput');
+    dateInput.max = todayStr();
+    dateInput.value = checkinDate;
+    loadCheckinForDate();
+    document.getElementById('checkinOverlay').classList.add('open');
+  }
+
+  function onCheckinDateChange(newDate){
+    checkinDate = newDate || todayStr();
+    checkinPhotoFile = null; checkinRemovePhoto = false;
+    loadCheckinForDate();
+  }
+
+  function loadCheckinForDate(){
+    const g = veraData.goals.find(x=>x.id===checkinGoalId);
+    const existing = veraData.checkins.find(c=>c.goalId===checkinGoalId && c.date===checkinDate);
     document.getElementById('checkinGoalName').textContent = 'เช็คอิน · ' + g.name;
     document.getElementById('checkinComment').value = existing && existing.comment ? existing.comment : '';
     setLevel('stress', existing && existing.stressLevel!=null ? existing.stressLevel : null);
@@ -1498,7 +1556,6 @@
     } else {
       setYesNo(null); showCheckinStep('step1');
     }
-    document.getElementById('checkinOverlay').classList.add('open');
   }
   function setYesNo(v){
     document.getElementById('yesnoYes').classList.toggle('selected', v==='yes');
@@ -1562,7 +1619,7 @@
   }
 
   async function saveCheckinRecord(done, detail){
-    const t = todayStr();
+    const t = checkinDate || todayStr();
     let c = veraData.checkins.find(x=>x.goalId===checkinGoalId && x.date===t);
     let photoId = c ? c.photoId : null;
 
