@@ -231,6 +231,23 @@
   .photo-preview img{width:100%;border-radius:12px;max-height:180px;object-fit:cover;display:block;}
   .photo-remove{position:absolute;top:8px;right:8px;background:rgba(58,46,53,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:13px;}
 
+  /* lock screen */
+  .lock-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .lock-overlay.hidden{display:none;}
+  .lock-card{background:var(--card); border-radius:22px; padding:34px 26px; box-shadow:var(--shadow); max-width:320px; width:100%; text-align:center;}
+  .lock-card .icon{font-size:38px;margin-bottom:8px;}
+  .lock-card h2{margin:0 0 4px;}
+  .lock-card .sub{font-size:12.5px;color:var(--text-sub);margin-bottom:22px;}
+  .lock-input{
+    width:100%;border:1.5px solid #f1e2e6;border-radius:12px;padding:14px;font-size:22px;
+    text-align:center;letter-spacing:6px;font-family:inherit;margin-bottom:14px;box-sizing:border-box;
+  }
+  .lock-btn{width:100%;border:none;background:var(--rose);color:#fff;border-radius:999px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;}
+  .lock-error{color:var(--danger);font-size:12.5px;margin-top:12px;min-height:16px;}
+
   .toast{
     position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:var(--text); color:#fff;
     padding:10px 18px; border-radius:999px; font-size:13px; z-index:50; opacity:0; pointer-events:none; transition:opacity .25s;
@@ -240,6 +257,17 @@
 </style>
 </head>
 <body>
+
+  <div class="lock-overlay" id="lockOverlay">
+    <div class="lock-card">
+      <div class="icon">🔒</div>
+      <h2 class="brand">Vera</h2>
+      <div class="sub">ใส่รหัสผ่านเพื่อเข้าแอพ</div>
+      <input type="password" inputmode="numeric" class="lock-input" id="lockPasswordInput" placeholder="••••••" maxlength="12" onkeydown="if(event.key==='Enter')checkLockPassword()">
+      <button class="lock-btn" onclick="checkLockPassword()">เข้าแอพ</button>
+      <div class="lock-error" id="lockError"></div>
+    </div>
+  </div>
 
   <div id="app">
     <div class="topbar">
@@ -568,6 +596,27 @@
   </div>
 
 <script>
+  /* ================= Lock screen ================= */
+  const APP_PASSWORD = '220242';
+  (function initLock(){
+    if(sessionStorage.getItem('vera_unlocked') === '1'){
+      document.getElementById('lockOverlay').classList.add('hidden');
+    } else {
+      document.getElementById('lockPasswordInput').focus();
+    }
+  })();
+  function checkLockPassword(){
+    const val = document.getElementById('lockPasswordInput').value;
+    if(val === APP_PASSWORD){
+      sessionStorage.setItem('vera_unlocked', '1');
+      document.getElementById('lockOverlay').classList.add('hidden');
+    } else {
+      document.getElementById('lockError').textContent = 'รหัสผ่านไม่ถูกต้อง';
+      document.getElementById('lockPasswordInput').value = '';
+      document.getElementById('lockPasswordInput').focus();
+    }
+  }
+
   /* ================= Data layer: localStorage ================= */
   const DATA_KEY = 'vera_data';
   const UI_KEY = 'vera_ui_state';
